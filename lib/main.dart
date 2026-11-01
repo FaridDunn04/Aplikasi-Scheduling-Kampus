@@ -21,7 +21,8 @@ void main() async {
   await DatabaseHelper.instance.database;
 
   // 2. Inisialisasi Service Alarm & Pengingat
-  AlarmNotificationService.instance.init(rootNavigatorKey);
+  await AlarmNotificationService.instance.init(rootNavigatorKey);
+
 
   // 3. Load seluruh data awal ke state
   await AppStateManager.instance.init();

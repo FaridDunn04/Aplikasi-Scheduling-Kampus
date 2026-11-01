@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../data/models/task_model.dart';
 import '../../../core/utils/date_time_utils.dart';
+import '../../../services/alarm_notification_service.dart';
 
 class FullScreenAlarmDialog extends StatefulWidget {
   final Task task;
@@ -32,11 +33,15 @@ class _FullScreenAlarmDialogState extends State<FullScreenAlarmDialog>
     _scaleAnimation = Tween<double>(begin: 0.9, end: 1.15).animate(
       CurvedAnimation(parent: _animController, curve: Curves.easeInOut),
     );
+
+    // Putar nada dering alarm sungguhan
+    AlarmNotificationService.instance.playAlarmSound(widget.task.alarmSoundId);
   }
 
   @override
   void dispose() {
     _animController.dispose();
+    AlarmNotificationService.instance.stopAlarmSound();
     super.dispose();
   }
 
@@ -158,6 +163,7 @@ class _FullScreenAlarmDialogState extends State<FullScreenAlarmDialog>
                         ),
                       ),
                       onPressed: () {
+                        AlarmNotificationService.instance.snoozeAlarm(widget.task, minutes: 10);
                         Navigator.pop(context);
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
@@ -187,6 +193,7 @@ class _FullScreenAlarmDialogState extends State<FullScreenAlarmDialog>
                         ),
                       ),
                       onPressed: () {
+                        AlarmNotificationService.instance.stopAlarmSound();
                         Navigator.pop(context);
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(

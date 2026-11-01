@@ -46,4 +46,11 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
-/unisched_clean.db
+*.db
+*.db-journal
+*.db-wal
+unisched*.db
+db_viewer.html
+unisched_clean.db
+unisched.db
+

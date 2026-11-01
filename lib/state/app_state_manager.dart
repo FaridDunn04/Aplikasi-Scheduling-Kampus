@@ -35,7 +35,9 @@ class AppStateManager extends ChangeNotifier {
     notifyListeners();
     await _db.ensureDefaultData();
     await refresh();
+    await AlarmNotificationService.instance.rescheduleAll(_tasks);
     // 2. Tambahkan timer pengecekan otomatis tiap 1 menit:
+
     _autoCompleteTimer?.cancel();
     _autoCompleteTimer = Timer.periodic(const Duration(minutes: 1), (_) {
       _autoCompleteExpiredTasks();
