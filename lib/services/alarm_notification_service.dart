@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
@@ -24,14 +25,14 @@ class AlarmNotificationService {
 
   AlarmNotificationService._init();
 
-  // Channel ID & Nama untuk Android
+  // Channel ID & Names for Android
   static const String channelIdAlarm = 'unisched_alarm_channel';
-  static const String channelNameAlarm = 'Alarm Pengingat Tugas';
-  static const String channelDescAlarm = 'Membunyikan nada dering alarm saat waktu pengingat tugas kuliah tiba.';
+  static const String channelNameAlarm = 'Assignment Reminder Alarm';
+  static const String channelDescAlarm = 'Plays alarm ringtone when course assignment reminder time arrives.';
 
   static const String channelIdCountdown = 'unisched_countdown_channel';
-  static const String channelNameCountdown = 'Peringatan Deadline Tugas';
-  static const String channelDescCountdown = 'Notifikasi hitung mundur berkala 5 menit terakhir sebelum batas waktu deadline tugas.';
+  static const String channelNameCountdown = 'Assignment Deadline Countdown';
+  static const String channelDescCountdown = 'Periodic countdown notifications for the final 5 minutes before deadline.';
 
   Future<void> init(GlobalKey<NavigatorState> navKey) async {
     navigatorKey = navKey;
@@ -110,119 +111,156 @@ class AlarmNotificationService {
 
   void _onNotificationTapped(NotificationResponse response) {
     final payload = response.payload;
-    debugPrint('[AlarmService] Notifikasi diklik, payload: $payload');
+    debugPrint('[AlarmService] Notification tapped, payload: $payload');
     if (payload != null && navigatorKey?.currentContext != null) {
       try {
         final task = AppStateManager.instance.tasks.firstWhere((t) => t.id == payload);
-        triggerAlarm(navigatorKey!.currentContext!, task);
+        final sound = AppStateManager.instance.alarmSounds
+            .where((s) => s.id == task.alarmSoundId)
+            .firstOrNull;
+        triggerAlarm(
+          navigatorKey!.currentContext!,
+          task,
+          soundTitle: sound?.title ?? 'Soft Chime',
+        );
       } catch (_) {}
     }
   }
 
-  // ================= PEMUTAR AUDIO NADA DERING ALARM =================
+  // ================= ALARM AUDIO RINGTONE PLAYER =================
   Future<void> playAlarmSound(String? soundIdOrPath) async {
     try {
       await _audioPlayer.stop();
       await _audioPlayer.setReleaseMode(ReleaseMode.loop);
       await _audioPlayer.setVolume(1.0);
 
-      String assetPath = 'sounds/chime.wav';
       if (soundIdOrPath != null) {
+        // Check if soundId matches a local file import in AppStateManager
+        try {
+          final sound = AppStateManager.instance.alarmSounds
+              .where((s) => s.id == soundIdOrPath)
+              .firstOrNull;
+
+          if (sound != null && sound.localFilePath.isNotEmpty) {
+            final file = File(sound.localFilePath);
+            if (await file.exists()) {
+              await _audioPlayer.play(DeviceFileSource(sound.localFilePath));
+              debugPrint('[AlarmService] Playing local file: ${sound.localFilePath}');
+              return;
+            }
+          }
+        } catch (_) {}
+
+        // Check if soundIdOrPath itself is an existing file path
+        try {
+          final directFile = File(soundIdOrPath);
+          if (await directFile.exists()) {
+            await _audioPlayer.play(DeviceFileSource(soundIdOrPath));
+            debugPrint('[AlarmService] Playing direct file: $soundIdOrPath');
+            return;
+          }
+        } catch (_) {}
+
         final lower = soundIdOrPath.toLowerCase();
-        if (lower.contains('beep')) {
-          assetPath = 'sounds/beep.wav';
-        } else if (lower.contains('energetic')) {
-          assetPath = 'sounds/energetic.wav';
+        if (lower.contains('beep') || soundIdOrPath == 'sound_default_2') {
+          await _audioPlayer.play(AssetSource('sounds/beep.wav'));
+          debugPrint('[AlarmService] Playing asset: sounds/beep.wav');
+          return;
+        } else if (lower.contains('energetic') || soundIdOrPath == 'sound_default_3') {
+          await _audioPlayer.play(AssetSource('sounds/energetic.wav'));
+          debugPrint('[AlarmService] Playing asset: sounds/energetic.wav');
+          return;
         }
       }
 
-      await _audioPlayer.play(AssetSource(assetPath));
-      debugPrint('[AlarmService] Memutar nada dering alarm: $assetPath');
+      await _audioPlayer.play(AssetSource('sounds/chime.wav'));
+      debugPrint('[AlarmService] Playing default chime: sounds/chime.wav');
     } catch (e) {
-      debugPrint('[AlarmService] Gagal memutar nada dering: $e');
+      debugPrint('[AlarmService] Failed to play sound: $e');
     }
   }
 
   Future<void> stopAlarmSound() async {
     try {
       await _audioPlayer.stop();
-      debugPrint('[AlarmService] Nada dering alarm dihentikan');
+      debugPrint('[AlarmService] Alarm audio stopped');
     } catch (e) {
-      debugPrint('[AlarmService] Gagal menghentikan audio: $e');
+      debugPrint('[AlarmService] Failed to stop audio: $e');
     }
   }
 
-  // ================= PENJADWALAN ALARM & HITUNG MUNDUR DEADLINE =================
+  // ================= ALARM SCHEDULING & DEADLINE COUNTDOWN =================
   Future<void> scheduleAlarmForTask(Task task) async {
-    // Jika tugas sudah selesai, batalkan semua alarm & notifikasi terkait
+    // If task is completed, cancel all notifications & alarms
     if (task.isCompleted) {
       cancelAlarmForTask(task.id);
       return;
     }
 
-    // Batalkan jadwal lama terlebih dahulu agar tidak dobel
     cancelAlarmForTask(task.id);
 
     final int baseId = task.id.hashCode.abs() % 100000;
     final now = DateTime.now();
 
-    // 1. BAGIAN A: ALARM PADA WAKTU PENGINGAT (Hanya ada di waktu pengingat saja)
-    if (task.isAlarmEnabled) {
-      try {
-        final reminderDt = DateTimeUtils.parseIso(task.reminderDatetime);
-        if (reminderDt.isAfter(now)) {
-          final int reminderNotifId = baseId * 10 + 0;
-          await _scheduleZonedNotification(
-            id: reminderNotifId,
-            title: '⏰ Alarm Pengingat: ${task.title}',
-            body: 'Waktu pengingat tugas kuliah tiba! Buka aplikasi untuk melihat rincian.',
-            scheduledDate: reminderDt,
-            channelId: channelIdAlarm,
-            channelName: channelNameAlarm,
-            channelDesc: channelDescAlarm,
-            importance: Importance.max,
-            priority: Priority.high,
-            payload: task.id,
-            isAlarm: true,
-          );
-          debugPrint('[AlarmService] Alarm dijadwalkan pada $reminderDt untuk "${task.title}"');
-        }
-      } catch (e) {
-        debugPrint('[AlarmService] Error scheduling reminder alarm: $e');
+    // 1. REMINDER NOTIFICATION (At reminder datetime)
+    try {
+      final reminderDt = DateTimeUtils.parseIso(task.reminderDatetime);
+      if (reminderDt.isAfter(now)) {
+        final int reminderNotifId = baseId * 10 + 0;
+        await _scheduleZonedNotification(
+          id: reminderNotifId,
+          title: task.isAlarmEnabled
+              ? '⏰ Reminder Alarm: ${task.title}'
+              : '📌 Task Reminder: ${task.title}',
+          body: task.isAlarmEnabled
+              ? 'Assignment reminder time has arrived! Open app to view details.'
+              : 'Reminder for task "${task.title}". Tap to check details.',
+          scheduledDate: reminderDt,
+          channelId: task.isAlarmEnabled ? channelIdAlarm : channelIdCountdown,
+          channelName: task.isAlarmEnabled ? channelNameAlarm : channelNameCountdown,
+          channelDesc: task.isAlarmEnabled ? channelDescAlarm : channelDescCountdown,
+          importance: task.isAlarmEnabled ? Importance.max : Importance.high,
+          priority: Priority.high,
+          payload: task.id,
+          isAlarm: task.isAlarmEnabled,
+        );
+        debugPrint('[AlarmService] Reminder notification scheduled at $reminderDt for "${task.title}" (isAlarm: ${task.isAlarmEnabled})');
       }
+    } catch (e) {
+      debugPrint('[AlarmService] Error scheduling reminder notification: $e');
     }
 
-    // 2. BAGIAN B: PESAN NOTIFIKASI HITUNG MUNDUR DEADLINE (5 Menit Terakhir, 1 Notifikasi Tiap Menit)
+    // 2. DEADLINE COUNTDOWN NOTIFICATIONS (Last 5 Minutes, 1 per minute)
     try {
       final deadlineDt = DateTimeUtils.parseIso(task.deadlineDatetime);
 
-      // Loop dari 5 menit sebelum sampai 0 menit (saat deadline habis)
+      // Loop from 5 minutes down to 0 (at deadline)
       for (int m = 5; m >= 0; m--) {
         final targetTime = deadlineDt.subtract(Duration(minutes: m));
 
-        // Hanya jadwalkan jika waktu target belum lewat dari saat ini
+        // Only schedule if target time is in the future
         if (targetTime.isAfter(now)) {
           String notifTitle;
           String notifBody;
 
           if (m == 5) {
-            notifTitle = '⚠️ Deadline Mendekati (Tinggal 5 Menit!)';
-            notifBody = 'Tugas "${task.title}" tersisa 5 menit lagi sebelum batas waktu pengumpulan!';
+            notifTitle = '⚠️ Deadline Approaching (5 Minutes Left!)';
+            notifBody = 'Task "${task.title}" has 5 minutes left until submission deadline!';
           } else if (m == 4) {
-            notifTitle = '⚠️ Deadline Mendekati (Tinggal 4 Menit!)';
-            notifBody = 'Tugas "${task.title}" tersisa 4 menit lagi sebelum batas waktu pengumpulan!';
+            notifTitle = '⚠️ Deadline Approaching (4 Minutes Left!)';
+            notifBody = 'Task "${task.title}" has 4 minutes left until submission deadline!';
           } else if (m == 3) {
-            notifTitle = '⚠️ Deadline Mendekati (Tinggal 3 Menit!)';
-            notifBody = 'Tugas "${task.title}" tersisa 3 menit lagi sebelum batas waktu pengumpulan!';
+            notifTitle = '⚠️ Deadline Approaching (3 Minutes Left!)';
+            notifBody = 'Task "${task.title}" has 3 minutes left until submission deadline!';
           } else if (m == 2) {
-            notifTitle = '⚠️ Deadline Mendekati (Tinggal 2 Menit!)';
-            notifBody = 'Tugas "${task.title}" tersisa 2 menit lagi sebelum batas waktu pengumpulan!';
+            notifTitle = '⚠️ Deadline Approaching (2 Minutes Left!)';
+            notifBody = 'Task "${task.title}" has 2 minutes left until submission deadline!';
           } else if (m == 1) {
-            notifTitle = '🚨 Deadline Sangat Dekat (Tinggal 1 Menit!)';
-            notifBody = 'Tugas "${task.title}" tersisa 1 menit lagi! Segera selesaikan sekarang!';
+            notifTitle = '🚨 Deadline Critical (1 Minute Left!)';
+            notifBody = 'Task "${task.title}" has only 1 minute left! Submit now!';
           } else {
-            notifTitle = '⏰ Waktu Deadline Habis!';
-            notifBody = 'Batas waktu pengerjaan tugas "${task.title}" telah berakhir.';
+            notifTitle = '⏰ Deadline Passed!';
+            notifBody = 'Submission deadline for "${task.title}" has ended.';
           }
 
           final int countdownNotifId = baseId * 10 + (6 - m);
@@ -239,7 +277,7 @@ class AlarmNotificationService {
             payload: task.id,
             isAlarm: false,
           );
-          debugPrint('[AlarmService] Countdown ($m menit) dijadwalkan pada $targetTime untuk "${task.title}"');
+          debugPrint('[AlarmService] Countdown ($m min) scheduled at $targetTime for "${task.title}"');
         }
       }
     } catch (e) {
@@ -294,7 +332,7 @@ class AlarmNotificationService {
         payload: payload,
       );
     } catch (e) {
-      // Fallback jika exact alarm belum diizinkan oleh sistem Android
+      // Fallback if exact alarm not yet granted
       try {
         await _notificationsPlugin.zonedSchedule(
           id: id,
@@ -313,15 +351,14 @@ class AlarmNotificationService {
 
   void cancelAlarmForTask(String taskId) {
     final int baseId = taskId.hashCode.abs() % 100000;
-    // Batalkan notifikasi pengingat (0) dan notifikasi countdown 5..0 menit (1..6)
     for (int i = 0; i <= 6; i++) {
       _notificationsPlugin.cancel(id: baseId * 10 + i);
     }
     stopAlarmSound();
-    debugPrint('[AlarmService] Semua notifikasi & alarm dibatalkan untuk task: $taskId');
+    debugPrint('[AlarmService] All notifications & alarms cancelled for task: $taskId');
   }
 
-  // Tunda Alarm (Snooze 10 Menit)
+  // Snooze Alarm (10 Minutes)
   Future<void> snoozeAlarm(Task task, {int minutes = 10}) async {
     await stopAlarmSound();
     final snoozeTime = DateTime.now().add(Duration(minutes: minutes));
@@ -329,8 +366,8 @@ class AlarmNotificationService {
 
     await _scheduleZonedNotification(
       id: baseId * 10 + 0,
-      title: '⏰ Alarm Pengingat (Snooze): ${task.title}',
-      body: 'Pengingat tunda $minutes menit telah tiba! Segera kerjakan tugas ini.',
+      title: '⏰ Reminder Alarm (Snooze): ${task.title}',
+      body: 'Snooze reminder ($minutes minutes) has arrived! Complete this task now.',
       scheduledDate: snoozeTime,
       channelId: channelIdAlarm,
       channelName: channelNameAlarm,
@@ -340,10 +377,10 @@ class AlarmNotificationService {
       payload: task.id,
       isAlarm: true,
     );
-    debugPrint('[AlarmService] Alarm ditunda $minutes menit hingga $snoozeTime');
+    debugPrint('[AlarmService] Alarm snoozed for $minutes minutes until $snoozeTime');
   }
 
-  // Reschedule semua tugas aktif (dipanggil saat inisialisasi awal)
+  // Reschedule all active tasks
   Future<void> rescheduleAll(List<Task> tasks) async {
     for (final task in tasks) {
       if (!task.isCompleted) {
@@ -352,8 +389,8 @@ class AlarmNotificationService {
     }
   }
 
-  // ================= DIALOG IN-APP & FOREGROUND POLLER =================
-  void triggerAlarm(BuildContext context, Task task, {String soundTitle = 'Chime Lembut'}) {
+  // ================= IN-APP DIALOG & FOREGROUND POLLER =================
+  void triggerAlarm(BuildContext context, Task task, {String soundTitle = 'Soft Chime'}) {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -388,11 +425,18 @@ class AlarmNotificationService {
           final reminderDt = DateTimeUtils.parseIso(task.reminderDatetime);
           final diffInSeconds = now.difference(reminderDt).inSeconds;
 
-          // Jika waktu sekarang berada di rentang 0 s.d 30 detik setelah reminder
+          // If current time is within 0 to 30 seconds after reminder
           if (diffInSeconds >= 0 && diffInSeconds <= 30) {
             _triggeredReminderIds.add(task.id);
-            triggerAlarm(context, task);
-            break; // Tampilkan 1 alarm dialog sekaligus
+            final sound = AppStateManager.instance.alarmSounds
+                .where((s) => s.id == task.alarmSoundId)
+                .firstOrNull;
+            triggerAlarm(
+              context,
+              task,
+              soundTitle: sound?.title ?? 'Soft Chime',
+            );
+            break; // Show 1 alarm dialog at a time
           }
         } catch (_) {}
       }

@@ -83,7 +83,7 @@ class UrgentTasksSection extends StatelessWidget {
                 Icon(Icons.done_all_rounded, size: 36, color: Colors.green),
                 SizedBox(height: 10),
                 Text(
-                  'Semua tugas telah selesai atau belum ada tugas aktif. 🎉',
+                  'All tasks completed or no active tasks. 🎉',
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 13, color: Color(0xFF64748B), height: 1.4),
                 ),
@@ -97,7 +97,7 @@ class UrgentTasksSection extends StatelessWidget {
               scrollDirection: Axis.horizontal,
               clipBehavior: Clip.none,
               itemCount: urgentTasks.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 14),
+              separatorBuilder: (_, _) => const SizedBox(width: 14),
               itemBuilder: (context, index) {
                 final task = urgentTasks[index];
                 final course = state.getCourseById(task.courseId);
@@ -213,7 +213,7 @@ class UrgentTasksSection extends StatelessWidget {
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              course?.courseName ?? 'Tugas Umum',
+                              course?.courseName ?? 'General Task',
                               style: const TextStyle(
                                 color: Color(0xFF64748B),
                                 fontSize: 12,

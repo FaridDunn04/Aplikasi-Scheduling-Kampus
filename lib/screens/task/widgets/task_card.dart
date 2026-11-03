@@ -57,7 +57,7 @@ class TaskCard extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(20),
-          onTap: onEdit,
+          //onTap: onEdit,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
             child: Row(
@@ -66,11 +66,10 @@ class TaskCard extends StatelessWidget {
                 // 1. Circular Checkbox / Radio
                 Padding(
                   padding: const EdgeInsets.only(top: 2.0),
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(16),
-                    onTap: () => onToggleComplete(!task.isCompleted),
-                    child: task.isCompleted
-                        ? Container(
+                  child: task.isCompleted
+                      ? Tooltip(
+                          message: 'Task completed (Tap Edit to extend deadline)',
+                          child: Container(
                             width: 24,
                             height: 24,
                             decoration: const BoxDecoration(
@@ -82,8 +81,12 @@ class TaskCard extends StatelessWidget {
                               size: 16,
                               color: Colors.white,
                             ),
-                          )
-                        : Container(
+                          ),
+                        )
+                      : InkWell(
+                          borderRadius: BorderRadius.circular(16),
+                          onTap: () => onToggleComplete(!task.isCompleted),
+                          child: Container(
                             width: 24,
                             height: 24,
                             decoration: BoxDecoration(
@@ -94,7 +97,7 @@ class TaskCard extends StatelessWidget {
                               ),
                             ),
                           ),
-                  ),
+                        ),
                 ),
                 const SizedBox(width: 14),
 
@@ -133,7 +136,7 @@ class TaskCard extends StatelessWidget {
                           const SizedBox(width: 6),
                           Expanded(
                             child: Text(
-                              relatedCourse?.courseName ?? 'Tugas Umum',
+                              relatedCourse?.courseName ?? 'General Task',
                               style: const TextStyle(
                                 color: Color(0xFF64748B),
                                 fontSize: 12.5,
@@ -183,7 +186,7 @@ class TaskCard extends StatelessWidget {
                           ),
 
                           // Due Status Pill
-                          if (task.isCompleted)
+                          if (task.isCompleted) ...[
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3.5),
                               decoration: BoxDecoration(
@@ -205,8 +208,30 @@ class TaskCard extends StatelessWidget {
                                   ),
                                 ],
                               ),
-                            )
-                          else
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3.5),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF1F5F9),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.history_rounded, color: Color(0xFF64748B), size: 12),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'Deadline: $dueString',
+                                    style: const TextStyle(
+                                      color: Color(0xFF64748B),
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ] else
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3.5),
                               decoration: BoxDecoration(
@@ -231,7 +256,7 @@ class TaskCard extends StatelessWidget {
                             ),
 
                           // Alarm Badge
-                          if (task.isAlarmEnabled)
+                          if (task.isAlarmEnabled && !task.isCompleted)
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3.5),
                               decoration: BoxDecoration(
@@ -260,9 +285,13 @@ class TaskCard extends StatelessWidget {
                   ),
                 ),
 
-                // 3. Trailing Chevron & More Actions
+                // 3. Trailing More Actions
                 PopupMenuButton<String>(
-                  icon: const Icon(Icons.chevron_right_rounded, color: Color(0xFFCBD5E1), size: 22),
+                  icon: Icon(
+                    task.isCompleted ? Icons.more_vert_rounded : Icons.chevron_right_rounded,
+                    color: const Color(0xFF94A3B8),
+                    size: 20,
+                  ),
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
                   onSelected: (val) {
@@ -285,7 +314,7 @@ class TaskCard extends StatelessWidget {
                         children: [
                           Icon(Icons.edit_outlined, size: 18),
                           SizedBox(width: 8),
-                          Text('Edit Tugas'),
+                          Text('Edit Task'),
                         ],
                       ),
                     ),
@@ -295,7 +324,7 @@ class TaskCard extends StatelessWidget {
                         children: [
                           Icon(Icons.qr_code_2_outlined, size: 18, color: Colors.purple),
                           SizedBox(width: 8),
-                          Text('Bagikan (QR Code)'),
+                          Text('Share (QR Code)'),
                         ],
                       ),
                     ),
@@ -305,7 +334,7 @@ class TaskCard extends StatelessWidget {
                         children: [
                           Icon(Icons.delete_outline, size: 18, color: Colors.red),
                           SizedBox(width: 8),
-                          Text('Hapus Tugas', style: TextStyle(color: Colors.red)),
+                          Text('Delete Task', style: TextStyle(color: Colors.red)),
                         ],
                       ),
                     ),

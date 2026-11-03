@@ -114,14 +114,14 @@ class _ShareModalDialogState extends State<ShareModalDialog> with SingleTickerPr
   void _copyToClipboard(String text, String label) {
     Clipboard.setData(ClipboardData(text: text));
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$label berhasil disalin ke clipboard!')),
+      SnackBar(content: Text('$label copied to clipboard!')),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final isTask = widget.singleTaskToShare != null;
-    final title = isTask ? 'Bagikan Tugas' : 'Bagikan Jadwal Kuliah';
+    final title = isTask ? 'Share Task' : 'Share Class Schedule';
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -158,7 +158,7 @@ class _ShareModalDialogState extends State<ShareModalDialog> with SingleTickerPr
                 controller: _tabController,
                 tabs: const [
                   Tab(icon: Icon(Icons.qr_code, size: 20), text: 'QR Code (Offline)'),
-                  Tab(icon: Icon(Icons.link, size: 20), text: 'Link & Kode Unik'),
+                  Tab(icon: Icon(Icons.link, size: 20), text: 'Link & Unique Code'),
                 ],
               ),
               const SizedBox(height: 16),
@@ -173,13 +173,13 @@ class _ShareModalDialogState extends State<ShareModalDialog> with SingleTickerPr
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           const Text(
-                            'Teman sebangku dapat langsung scan QR ini secara 100% OFFLINE tanpa internet:',
+                            'Peers can directly scan this QR code 100% OFFLINE without internet:',
                             textAlign: TextAlign.center,
                             style: TextStyle(fontSize: 12, color: Colors.grey),
                           ),
                           const SizedBox(height: 16),
                           QrImageView(
-                            data: _deepLink, // QR Code berisi link yang langsung bisa discan
+                            data: _deepLink, // QR Code contains the import link
                             version: QrVersions.auto,
                             size: 220.0,
                             backgroundColor: Colors.white,
@@ -187,26 +187,26 @@ class _ShareModalDialogState extends State<ShareModalDialog> with SingleTickerPr
                           ),
                           const SizedBox(height: 16),
                           OutlinedButton.icon(
-                            onPressed: () => _copyToClipboard(_jsonPayloadString, 'Data JSON QR Code'),
+                            onPressed: () => _copyToClipboard(_jsonPayloadString, 'Raw JSON Data'),
                             icon: const Icon(Icons.copy, size: 16),
-                            label: const Text('Salin Data Mentah (JSON)'),
+                            label: const Text('Copy Raw Data (JSON)'),
                           ),
                         ],
                       ),
                     ),
 
-                    // Tab 2: Link & Kode Unik (Online Mode)
+                    // Tab 2: Link & Unique Code
                     SingleChildScrollView(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text(
-                            'Gunakan Kode Unik atau tautan untuk dibagikan via grup WhatsApp / Media Sosial:',
+                            'Use the Unique Code or link to share via WhatsApp / Social Media:',
                             style: TextStyle(fontSize: 13, color: Colors.grey),
                           ),
                           const SizedBox(height: 16),
 
-                          // Kode Unik Card
+                          // Unique Code Card
                           Container(
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
@@ -220,7 +220,7 @@ class _ShareModalDialogState extends State<ShareModalDialog> with SingleTickerPr
                                 Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text('KODE UNIK', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey)),
+                                    const Text('UNIQUE CODE', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey)),
                                     const SizedBox(height: 4),
                                     Text(
                                       _uniqueCode,
@@ -235,8 +235,8 @@ class _ShareModalDialogState extends State<ShareModalDialog> with SingleTickerPr
                                 ),
                                 IconButton.filledTonal(
                                   icon: const Icon(Icons.copy),
-                                  tooltip: 'Salin Kode',
-                                  onPressed: () => _copyToClipboard(_uniqueCode, 'Kode unik'),
+                                  tooltip: 'Copy Code',
+                                  onPressed: () => _copyToClipboard(_uniqueCode, 'Unique code'),
                                 ),
                               ],
                             ),
@@ -277,11 +277,11 @@ class _ShareModalDialogState extends State<ShareModalDialog> with SingleTickerPr
                             child: FilledButton.icon(
                               style: FilledButton.styleFrom(backgroundColor: const Color(0xFF25D366)),
                               onPressed: () {
-                                final pesan = 'Halo! Saya membagikan jadwal kuliah UniSched.\nKlik tautan ini untuk memasukkannya ke aplikasimu:\n$_deepLink';
-                                Share.share(pesan, subject: 'Jadwal Kuliah UniSched');
+                                final pesan = 'Hello! I am sharing my UniSched class schedule.\nClick this link to import it into your app:\n$_deepLink';
+                                Share.share(pesan, subject: 'UniSched Class Schedule');
                               },
                               icon: const Icon(Icons.share, color: Colors.white),
-                              label: const Text('Bagikan ke WhatsApp'),
+                              label: const Text('Share to WhatsApp'),
                             ),
                           ),
                         ],

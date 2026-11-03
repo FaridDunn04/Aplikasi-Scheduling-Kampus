@@ -8,64 +8,57 @@ enum UrgencyLevel {
 }
 
 class DateTimeUtils {
-  static final List<String> indonesianDays = [
-    'Senin',
-    'Selasa',
-    'Rabu',
-    'Kamis',
-    'Jumat',
-    'Sabtu',
-    'Minggu'
+  static final List<String> englishDays = [
+    'Monday',
+    'Tuesday',
+    'Wednesday',
+    'Thursday',
+    'Friday',
+    'Saturday',
+    'Sunday'
   ];
 
-  static final List<String> shortIndonesianDays = [
-    'Sen',
-    'Sel',
-    'Rab',
-    'Kam',
-    'Jum',
-    'Sab',
-    'Min'
+  static final List<String> shortEnglishDays = [
+    'Mon',
+    'Tue',
+    'Wed',
+    'Thu',
+    'Fri',
+    'Sat',
+    'Sun'
   ];
 
-  static final List<String> indonesianMonths = [
-    'Januari',
-    'Februari',
-    'Maret',
+  static final List<String> englishMonths = [
+    'January',
+    'February',
+    'March',
     'April',
-    'Mei',
-    'Juni',
-    'Juli',
-    'Agustus',
+    'May',
+    'June',
+    'July',
+    'August',
     'September',
-    'Oktober',
+    'October',
     'November',
-    'Desember'
+    'December'
   ];
 
   static String getDayName(int dayOfWeek) {
     if (dayOfWeek >= 1 && dayOfWeek <= 7) {
-      return indonesianDays[dayOfWeek - 1];
+      return englishDays[dayOfWeek - 1];
     }
-    return 'Senin';
+    return 'Monday';
   }
 
   static String getShortDayName(int dayOfWeek) {
     if (dayOfWeek >= 1 && dayOfWeek <= 7) {
-      return shortIndonesianDays[dayOfWeek - 1];
+      return shortEnglishDays[dayOfWeek - 1];
     }
-    return 'Sen';
+    return 'Mon';
   }
 
   static String formatFullDate(DateTime dateTime) {
-    final dayName = getDayName(dateTime.weekday);
-    try {
-      final formattedDate = DateFormat('d MMMM yyyy', 'id_ID').format(dateTime);
-      return '$dayName, $formattedDate';
-    } catch (_) {
-      final monthName = indonesianMonths[dateTime.month - 1];
-      return '$dayName, ${dateTime.day} $monthName ${dateTime.year}';
-    }
+    return DateFormat('EEEE, MMM d, yyyy').format(dateTime);
   }
 
   static String formatDateTimeDisplay(DateTime dateTime) {
@@ -108,20 +101,20 @@ class DateTimeUtils {
     if (difference.isNegative) {
       final hoursAgo = difference.inHours.abs();
       if (hoursAgo == 0) {
-        return 'Terlewat ${difference.inMinutes.abs()} mnt lalu';
+        return 'Overdue by ${difference.inMinutes.abs()}m ago';
       } else if (hoursAgo < 24) {
-        return 'Terlewat $hoursAgo jam lalu';
+        return 'Overdue by ${hoursAgo}h ago';
       } else {
-        return 'Terlewat ${difference.inDays.abs()} hari lalu';
+        return 'Overdue by ${difference.inDays.abs()}d ago';
       }
     }
 
     if (difference.inMinutes < 60) {
-      return '${difference.inMinutes} menit lagi';
+      return '${difference.inMinutes}m left';
     } else if (difference.inHours < 24) {
-      return '${difference.inHours} jam lagi';
+      return '${difference.inHours}h left';
     } else if (difference.inDays == 1) {
-      return 'Besok, ${DateFormat('HH:mm').format(deadline)}';
+      return 'Tomorrow, ${DateFormat('HH:mm').format(deadline)}';
     } else if (difference.inDays < 7) {
       return '${getDayName(deadline.weekday)}, ${DateFormat('HH:mm').format(deadline)}';
     } else {

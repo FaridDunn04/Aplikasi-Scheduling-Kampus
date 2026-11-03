@@ -117,20 +117,29 @@ class _TaskScreenState extends State<TaskScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Hapus Tugas?'),
-        content: Text('Apakah Anda yakin ingin menghapus "${task.title}"?'),
+        title: const Text('Delete Task?'),
+        content: Text('Are you sure you want to delete "${task.title}"?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Batal'),
+            child: const Text('Cancel'),
           ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () async {
               Navigator.pop(ctx);
               await AppStateManager.instance.deleteTask(task.id);
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Task deleted successfully'),
+                    backgroundColor: Colors.red,
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              }
             },
-            child: const Text('Hapus'),
+            child: const Text('Delete'),
           ),
         ],
       ),
@@ -247,7 +256,7 @@ class _TaskScreenState extends State<TaskScreen> {
                             color: Color(0xFF4F46E5),
                             size: 20,
                           ),
-                          tooltip: 'Import / Opsi',
+                          tooltip: 'Import / Options',
                           onPressed: _openImportDialog,
                         ),
                       ],
@@ -263,7 +272,7 @@ class _TaskScreenState extends State<TaskScreen> {
                     scrollDirection: Axis.horizontal,
                     padding: const EdgeInsets.symmetric(horizontal: 18),
                     itemCount: _filters.length,
-                    separatorBuilder: (_, __) => const SizedBox(width: 10),
+                    separatorBuilder: (_, _) => const SizedBox(width: 10),
                     itemBuilder: (context, index) {
                       final isSelected = index == _selectedFilterIndex;
                       return InkWell(
@@ -281,19 +290,19 @@ class _TaskScreenState extends State<TaskScreen> {
                           ),
                           decoration: BoxDecoration(
                             color: isSelected
-                                ? const Color(0xFF3B82F6)
+                                ? const Color(0xFF2563EB)
                                 : Colors.white,
                             borderRadius: BorderRadius.circular(22),
                             border: Border.all(
                               color: isSelected
-                                  ? const Color(0xFF3B82F6)
+                                  ? const Color(0xFF2563EB)
                                   : const Color(0xFFE2E8F0),
                               width: 1.2,
                             ),
                             boxShadow: [
                               BoxShadow(
                                 color: isSelected
-                                    ? const Color(0xFF3B82F6).withAlpha(40)
+                                    ? const Color(0xFF2563EB).withAlpha(40)
                                     : const Color(0xFF64748B).withAlpha(10),
                                 blurRadius: isSelected ? 8 : 4,
                                 offset: const Offset(0, 2),
@@ -351,8 +360,8 @@ class _TaskScreenState extends State<TaskScreen> {
                                 const SizedBox(height: 16),
                                 Text(
                                   _selectedFilterIndex == 3
-                                      ? 'Belum ada riwayat tugas selesai'
-                                      : 'Belum ada tugas di kategori ini',
+                                      ? 'No completed tasks yet'
+                                      : 'No tasks in this category',
                                   textAlign: TextAlign.center,
                                   style: const TextStyle(
                                     fontSize: 16.5,
@@ -362,7 +371,7 @@ class _TaskScreenState extends State<TaskScreen> {
                                 ),
                                 const SizedBox(height: 6),
                                 Text(
-                                  'Tambahkan tugas baru untuk mulai memantau deadline Anda.',
+                                  'Add a new task to start tracking your deadlines.',
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
                                     fontSize: 13,
@@ -383,7 +392,7 @@ class _TaskScreenState extends State<TaskScreen> {
                                   ),
                                   onPressed: _openAddTaskDialog,
                                   icon: const Icon(Icons.add, size: 18),
-                                  label: const Text('Tambah Tugas Baru'),
+                                  label: const Text('Add New Task'),
                                 ),
                               ],
                             ),
@@ -400,14 +409,25 @@ class _TaskScreenState extends State<TaskScreen> {
                               task: task,
                               relatedCourse: course,
                               onToggleComplete: (_) {
-                                state.toggleTaskCompleted(task);
+                                if (!task.isCompleted) {
+                                  state.toggleTaskCompleted(task);
+                                }
                               },
-                              onEdit: () {
-                                showDialog(
+                              onEdit: () async {
+                                final wasCompleted = task.isCompleted;
+                                final result = await showDialog<bool>(
                                   context: context,
                                   builder: (ctx) =>
                                       TaskFormDialog(taskToEdit: task),
                                 );
+                                if (result == true && mounted) {
+                                  if (_selectedFilterIndex == 3 && wasCompleted) {
+                                    final updated = state.tasks.where((t) => t.id == task.id).firstOrNull;
+                                    if (updated != null && !updated.isCompleted) {
+                                      setState(() => _selectedFilterIndex = 0);
+                                    }
+                                  }
+                                }
                               },
                               onDelete: () => _confirmDeleteTask(context, task),
                             );
@@ -422,11 +442,11 @@ class _TaskScreenState extends State<TaskScreen> {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(20),
             ),
-            tooltip: 'Tambah Tugas',
+            tooltip: 'Add Task',
             onPressed: _openAddTaskDialog,
             icon: const Icon(Icons.add_rounded, color: Colors.white),
             label: const Text(
-              'Tambah Tugas',
+              'Add Task',
               style: TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,

@@ -14,8 +14,8 @@ final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Inisialisasi format tanggal bahasa Indonesia
-  await initializeDateFormatting('id_ID', null);
+  // Initialize date formatting for English
+  await initializeDateFormatting('en_US', null);
 
   // 1. Inisialisasi database lokal SQLite
   await DatabaseHelper.instance.database;

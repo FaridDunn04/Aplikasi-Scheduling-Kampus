@@ -37,7 +37,7 @@ class _ImportModalDialogState extends State<ImportModalDialog> {
         }
       } else {
         setState(() {
-          _errorMessage = 'QR Code tidak memuat data jadwal yang valid.';
+          _errorMessage = 'QR Code does not contain valid schedule data.';
         });
       }
     }
@@ -46,7 +46,7 @@ class _ImportModalDialogState extends State<ImportModalDialog> {
   Future<void> _processImport() async {
     final rawText = _inputController.text.trim();
     if (rawText.isEmpty) {
-      setState(() => _errorMessage = 'Harap masukkan Kode Unik atau Data JSON');
+      setState(() => _errorMessage = 'Please enter a Unique Code or JSON Data');
       return;
     }
 
@@ -66,7 +66,7 @@ class _ImportModalDialogState extends State<ImportModalDialog> {
             generatedAt: DateTime.now().toIso8601String(),
             courses: [
               ShareCourseItem(
-                courseName: 'Pemrograman Web',
+                courseName: 'Web Programming',
                 courseCode: 'IF204',
                 sks: 3,
                 dayOfWeek: 1,
@@ -76,10 +76,10 @@ class _ImportModalDialogState extends State<ImportModalDialog> {
             ],
             tasks: [
               ShareTaskItem(
-                title: 'Tugas Proyek Web ($upperCode)',
-                description: 'Hasil import dari kode $upperCode teman',
+                title: 'Web Project Task ($upperCode)',
+                description: 'Imported from peer code $upperCode',
                 courseCodeRef: 'IF204',
-                courseNameRef: 'Pemrograman Web',
+                courseNameRef: 'Web Programming',
                 deadlineDatetime: DateTime.now().add(const Duration(days: 2)).toIso8601String(),
                 reminderDatetime: DateTime.now().add(const Duration(days: 1)).toIso8601String(),
               ),
@@ -91,22 +91,22 @@ class _ImportModalDialogState extends State<ImportModalDialog> {
             generatedAt: DateTime.now().toIso8601String(),
             courses: [
               ShareCourseItem(
-                courseName: 'Algoritma & Struktur Data',
+                courseName: 'Data Structures & Algorithms',
                 courseCode: 'IF102',
                 sks: 3,
-                lecturerName: 'Dr. Budi Santoso, M.Kom.',
-                room: 'Lab Komputer 1',
+                lecturerName: 'Dr. John Doe, M.Sc.',
+                room: 'Computer Lab 1',
                 dayOfWeek: 1,
                 startTime: '10:45',
                 endTime: '13:15',
                 colorHex: '#10B981',
               ),
               ShareCourseItem(
-                courseName: 'Sistem Basis Data',
+                courseName: 'Database Systems',
                 courseCode: 'IF203',
                 sks: 3,
-                lecturerName: 'Siti Aminah, S.T., M.T.',
-                room: 'Ruang 304',
+                lecturerName: 'Jane Smith, Ph.D.',
+                room: 'Room 304',
                 dayOfWeek: 2,
                 startTime: '08:00',
                 endTime: '10:30',
@@ -123,17 +123,17 @@ class _ImportModalDialogState extends State<ImportModalDialog> {
       if (payload != null && mounted) {
         final imported = await showImportPreview(context, payload);
         if (imported == true && mounted) {
-          Navigator.pop(context); // Tutup dialog input
+          Navigator.pop(context); // Close input dialog
         }
       } else {
         setState(() {
-          _errorMessage = 'Format tidak valid. Pastikan format tautan, JSON, atau Kode sesuai.';
+          _errorMessage = 'Invalid format. Make sure link, JSON, or Code format is correct.';
         });
       }
     } catch (e) {
       setState(() {
         _isLoading = false;
-        _errorMessage = 'Format tidak valid atau data rusak.';
+        _errorMessage = 'Invalid format or corrupted data.';
       });
     }
   }
@@ -157,7 +157,7 @@ class _ImportModalDialogState extends State<ImportModalDialog> {
                       Icon(Icons.qr_code_scanner, color: Colors.blue),
                       SizedBox(width: 8),
                       Text(
-                        'Import Jadwal / Tugas',
+                        'Import Schedule / Tasks',
                         style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                     ],
@@ -171,7 +171,7 @@ class _ImportModalDialogState extends State<ImportModalDialog> {
               const Divider(),
               const SizedBox(height: 12),
 
-              // Tombol Scan QR dengan Kamera
+              // Scan QR Button
               SizedBox(
                 width: double.infinity,
                 height: 46,
@@ -179,7 +179,7 @@ class _ImportModalDialogState extends State<ImportModalDialog> {
                   onPressed: _openScanner,
                   icon: const Icon(Icons.qr_code_scanner),
                   label: const Text(
-                    'Scan QR Code dengan Kamera',
+                    'Scan QR Code with Camera',
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ),
@@ -192,7 +192,7 @@ class _ImportModalDialogState extends State<ImportModalDialog> {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 10),
                     child: Text(
-                      'ATAU TEMPEL LINK / KODE',
+                      'OR PASTE LINK / CODE',
                       style: TextStyle(fontSize: 11, color: Colors.grey.shade600, fontWeight: FontWeight.bold),
                     ),
                   ),
@@ -202,7 +202,7 @@ class _ImportModalDialogState extends State<ImportModalDialog> {
               const SizedBox(height: 10),
 
               const Text(
-                'Tempel tautan "unisched://", data JSON, atau Kode Unik:',
+                'Paste "unisched://" link, JSON data, or Unique Code:',
                 style: TextStyle(fontSize: 12, color: Colors.grey),
               ),
               const SizedBox(height: 10),
@@ -211,7 +211,7 @@ class _ImportModalDialogState extends State<ImportModalDialog> {
                 controller: _inputController,
                 maxLines: 3,
                 decoration: InputDecoration(
-                  hintText: 'Ketik Kode Unik, link unisched://, atau paste JSON...',
+                  hintText: 'Enter Unique Code, unisched:// link, or paste JSON...',
                   errorText: _errorMessage,
                 ),
               ),
@@ -225,7 +225,7 @@ class _ImportModalDialogState extends State<ImportModalDialog> {
                   icon: _isLoading
                       ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                       : const Icon(Icons.download),
-                  label: Text(_isLoading ? 'Memproses...' : 'Periksa & Import Data'),
+                  label: Text(_isLoading ? 'Processing...' : 'Verify & Import Data'),
                 ),
               ),
             ],
@@ -236,8 +236,8 @@ class _ImportModalDialogState extends State<ImportModalDialog> {
   }
 }
 
-/// Menampilkan dialog konfirmasi import data jadwal / tugas dari SharePayload.
-/// Mengembalikan true jika pengguna memilih untuk mengimpor, false jika dibatalkan.
+/// Displays import preview and confirmation dialog from SharePayload.
+/// Returns true if user imported, false if cancelled.
 Future<bool?> showImportPreview(BuildContext context, SharePayload payload) {
   final coursesCount = payload.courses.length;
   final tasksCount = payload.tasks.length;
@@ -245,13 +245,13 @@ Future<bool?> showImportPreview(BuildContext context, SharePayload payload) {
   return showDialog<bool>(
     context: context,
     builder: (ctx) => AlertDialog(
-      title: const Text('Konfirmasi Import Data'),
+      title: const Text('Confirm Data Import'),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Ditemukan data yang akan ditambahkan ke database lokal:',
+            'The following items were found to add to your local database:',
             style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
           ),
           const SizedBox(height: 12),
@@ -259,7 +259,7 @@ Future<bool?> showImportPreview(BuildContext context, SharePayload payload) {
             ListTile(
               contentPadding: EdgeInsets.zero,
               leading: const Icon(Icons.calendar_month, color: Colors.blue),
-              title: Text('$coursesCount Mata Kuliah'),
+              title: Text('$coursesCount Courses'),
               subtitle: Text(
                 payload.courses.map((c) => c.courseName).join(', '),
                 maxLines: 2,
@@ -270,7 +270,7 @@ Future<bool?> showImportPreview(BuildContext context, SharePayload payload) {
             ListTile(
               contentPadding: EdgeInsets.zero,
               leading: const Icon(Icons.task_alt, color: Colors.green),
-              title: Text('$tasksCount Tugas Kuliah'),
+              title: Text('$tasksCount Tasks'),
               subtitle: Text(
                 payload.tasks.map((t) => t.title).join(', '),
                 maxLines: 2,
@@ -279,7 +279,7 @@ Future<bool?> showImportPreview(BuildContext context, SharePayload payload) {
             ),
           const SizedBox(height: 8),
           const Text(
-            'Sistem akan mencocokkan mata kuliah secara otomatis (Smart Matching) dan mencegah duplikasi.',
+            'The system will automatically match courses (Smart Matching) and prevent duplicates.',
             style: TextStyle(fontSize: 11, fontStyle: FontStyle.italic, color: Colors.grey),
           ),
         ],
@@ -287,7 +287,7 @@ Future<bool?> showImportPreview(BuildContext context, SharePayload payload) {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(ctx, false),
-          child: const Text('Batal'),
+          child: const Text('Cancel'),
         ),
         FilledButton(
           onPressed: () async {
@@ -302,14 +302,14 @@ Future<bool?> showImportPreview(BuildContext context, SharePayload payload) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text(
-                    'Berhasil mengimpor $addedC matkul, $addedT tugas. ($skipped duplikasi dilewati)',
+                    'Successfully imported $addedC course(s), $addedT task(s). ($skipped duplicate(s) skipped)',
                   ),
                   backgroundColor: Colors.green,
                 ),
               );
             }
           },
-          child: const Text('Tambahkan ke Jadwalku'),
+          child: const Text('Add to My Schedule'),
         ),
       ],
     ),

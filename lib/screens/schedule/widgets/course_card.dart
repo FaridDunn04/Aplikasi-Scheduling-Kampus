@@ -42,7 +42,7 @@ class CourseCard extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(20),
-          onTap: onEdit,
+          //onTap: onEdit,
           child: Padding(
             padding: const EdgeInsets.all(16.0),
             child: Row(
@@ -95,7 +95,7 @@ class CourseCard extends StatelessWidget {
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Text(
-                              '${course.sks} SKS',
+                              '${course.sks} Credits',
                               style: const TextStyle(
                                 color: Color(0xFF475569),
                                 fontSize: 10.5,
@@ -153,7 +153,7 @@ class CourseCard extends StatelessWidget {
                             child: Text(
                               (course.lecturerName != null && course.lecturerName!.trim().isNotEmpty)
                                   ? course.lecturerName!
-                                  : 'Dosen Pengampu',
+                                  : 'Lecturer',
                               style: const TextStyle(
                                 color: Color(0xFF64748B),
                                 fontSize: 12,
@@ -185,7 +185,7 @@ class CourseCard extends StatelessWidget {
                         children: [
                           Icon(Icons.edit_outlined, size: 18),
                           SizedBox(width: 8),
-                          Text('Edit Jadwal'),
+                          Text('Edit Schedule'),
                         ],
                       ),
                     ),
@@ -195,7 +195,7 @@ class CourseCard extends StatelessWidget {
                         children: [
                           Icon(Icons.delete_outline, size: 18, color: Colors.red),
                           SizedBox(width: 8),
-                          Text('Hapus', style: TextStyle(color: Colors.red)),
+                          Text('Delete', style: TextStyle(color: Colors.red)),
                         ],
                       ),
                     ),

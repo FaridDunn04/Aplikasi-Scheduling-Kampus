@@ -95,7 +95,7 @@ class NextClassCard extends StatelessWidget {
                     ),
                     SizedBox(height: 2),
                     Text(
-                      'Tidak Ada Kelas Lagi Hari Ini',
+                      'No More Classes Today',
                       style: TextStyle(
                         color: Color(0xFF0F172A),
                         fontSize: 17,
@@ -108,7 +108,7 @@ class NextClassCard extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Text(
-              'Semua perkuliahan hari ini telah selesai atau sedang libur. Waktunya istirahat atau cicil tugas!',
+              'All classes for today are completed or on recess. Time to rest or catch up on tasks!',
               style: TextStyle(
                 color: Colors.grey.shade600,
                 fontSize: 13,
@@ -129,7 +129,7 @@ class NextClassCard extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      'Lihat Jadwal Lengkap',
+                      'View Full Schedule',
                       style: TextStyle(
                         color: Color(0xFF4F46E5),
                         fontSize: 12.5,
@@ -260,7 +260,7 @@ class NextClassCard extends StatelessWidget {
                 Text(
                   (nextCourse!.room != null && nextCourse!.room!.trim().isNotEmpty)
                       ? nextCourse!.room!
-                      : 'Ruang Kelas',
+                      : 'Classroom',
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 12.5,

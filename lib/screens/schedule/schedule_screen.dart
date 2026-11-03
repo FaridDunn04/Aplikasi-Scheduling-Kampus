@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../core/utils/date_time_utils.dart';
+import 'package:intl/intl.dart';
 import '../../state/app_state_manager.dart';
 import 'widgets/course_card.dart';
 import 'dialogs/course_form_dialog.dart';
@@ -15,13 +15,16 @@ class ScheduleScreen extends StatefulWidget {
 }
 
 class _ScheduleScreenState extends State<ScheduleScreen> {
-  final List<String> _days = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
   late int _selectedDayIndex;
+  late DateTime _startOfWeek;
 
   @override
   void initState() {
     super.initState();
-    _selectedDayIndex = DateTime.now().weekday - 1;
+    final now = DateTime.now();
+    // Monday of current week
+    _startOfWeek = DateTime(now.year, now.month, now.day).subtract(Duration(days: now.weekday - 1));
+    _selectedDayIndex = now.weekday - 1; // 0 = Mon, 6 = Sun
   }
 
   void _openAddCourseDialog() {
@@ -43,7 +46,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     if (state.courses.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Belum ada jadwal untuk dibagikan. Tambahkan jadwal terlebih dahulu!'),
+          content: Text('No schedule available to share. Please add classes first!'),
+          behavior: SnackBarBehavior.floating,
         ),
       );
       return;
@@ -67,6 +71,9 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
         final dayCourses = state.getCoursesForDay(selectedDayOfWeek);
         final hasAnyCourse = state.courses.isNotEmpty;
 
+        final selectedDate = _startOfWeek.add(Duration(days: _selectedDayIndex));
+        final fullDateHeader = DateFormat('EEEE, MMM d').format(selectedDate);
+
         return Scaffold(
           backgroundColor: const Color(0xFFF3F6FD),
           body: SafeArea(
@@ -76,15 +83,15 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
               children: [
                 // Top Header: Title & Action Icons
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 14),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Column(
+                      const Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'Schedule',
+                          Text(
+                            'Weekly Schedule',
                             style: TextStyle(
                               color: Color(0xFF0F172A),
                               fontSize: 28,
@@ -92,10 +99,10 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                               letterSpacing: -0.6,
                             ),
                           ),
-                          const SizedBox(height: 3),
+                          SizedBox(height: 3),
                           Text(
-                            '${DateTimeUtils.getDayName(selectedDayOfWeek)}, ${dayCourses.length} Kelas Terjadwal',
-                            style: const TextStyle(
+                            'Your class schedule for this week',
+                            style: TextStyle(
                               color: Color(0xFF64748B),
                               fontSize: 13.5,
                               fontWeight: FontWeight.w500,
@@ -108,19 +115,19 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                         children: [
                           _buildActionCircle(
                             icon: Icons.qr_code_scanner_rounded,
-                            tooltip: 'Import Jadwal',
+                            tooltip: 'Import Schedule',
                             onTap: _openImportDialog,
                           ),
                           const SizedBox(width: 8),
                           _buildActionCircle(
                             icon: Icons.share_rounded,
-                            tooltip: 'Bagikan Jadwal',
+                            tooltip: 'Share Schedule',
                             onTap: hasAnyCourse ? _openShareDialog : null,
                           ),
                           const SizedBox(width: 8),
                           _buildActionCircle(
                             icon: Icons.list_alt_rounded,
-                            tooltip: 'Kelola KRS',
+                            tooltip: 'Manage Courses',
                             onTap: () {
                               Navigator.push(
                                 context,
@@ -134,21 +141,22 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                   ),
                 ),
 
-                // Horizontal Day Selector Chips
+                // Horizontal Day Selector Cards (Mon Oct 6, Tue Oct 7, etc.)
                 SizedBox(
-                  height: 48,
+                  height: 68,
                   child: ListView.separated(
                     scrollDirection: Axis.horizontal,
                     padding: const EdgeInsets.symmetric(horizontal: 18),
-                    itemCount: _days.length,
-                    separatorBuilder: (_, __) => const SizedBox(width: 8),
+                    itemCount: 7,
+                    separatorBuilder: (_, _) => const SizedBox(width: 10),
                     itemBuilder: (context, index) {
                       final isSelected = index == _selectedDayIndex;
-                      final dayOfWeek = index + 1;
-                      final courseCount = state.getCoursesForDay(dayOfWeek).length;
+                      final dayDate = _startOfWeek.add(Duration(days: index));
+                      final dayAbbr = DateFormat('EEE').format(dayDate);
+                      final dateStr = DateFormat('MMM d').format(dayDate);
 
                       return InkWell(
-                        borderRadius: BorderRadius.circular(22),
+                        borderRadius: BorderRadius.circular(18),
                         onTap: () {
                           setState(() {
                             _selectedDayIndex = index;
@@ -156,53 +164,48 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                         },
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 200),
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          width: 66,
                           decoration: BoxDecoration(
                             color: isSelected ? const Color(0xFF2563EB) : Colors.white,
-                            borderRadius: BorderRadius.circular(22),
+                            borderRadius: BorderRadius.circular(18),
                             border: Border.all(
-                              color: isSelected ? const Color(0xFF2563EB) : const Color(0xFFE2E8F0),
+                              color: isSelected
+                                  ? const Color(0xFF2563EB)
+                                  : const Color(0xFFE2E8F0),
                               width: 1.2,
                             ),
                             boxShadow: [
                               BoxShadow(
                                 color: isSelected
-                                    ? const Color(0xFF2563EB).withAlpha(45)
-                                    : const Color(0xFF64748B).withAlpha(10),
-                                blurRadius: isSelected ? 8 : 4,
-                                offset: const Offset(0, 2),
+                                    ? const Color(0xFF2563EB).withAlpha(80)
+                                    : const Color(0xFF64748B).withAlpha(12),
+                                blurRadius: isSelected ? 12 : 6,
+                                offset: Offset(0, isSelected ? 4 : 2),
                               ),
                             ],
                           ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Text(
-                                _days[index],
+                                dayAbbr,
                                 style: TextStyle(
-                                  color: isSelected ? Colors.white : const Color(0xFF475569),
-                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                                  color: isSelected ? Colors.white : const Color(0xFF1E293B),
+                                  fontWeight: FontWeight.bold,
                                   fontSize: 13,
                                 ),
                               ),
-                              if (courseCount > 0) ...[
-                                const SizedBox(width: 6),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
-                                  decoration: BoxDecoration(
-                                    color: isSelected ? Colors.white : const Color(0xFFEEF2FF),
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  child: Text(
-                                    '$courseCount',
-                                    style: TextStyle(
-                                      fontSize: 10.5,
-                                      fontWeight: FontWeight.bold,
-                                      color: isSelected ? const Color(0xFF2563EB) : const Color(0xFF4F46E5),
-                                    ),
-                                  ),
+                              const SizedBox(height: 3),
+                              Text(
+                                dateStr,
+                                style: TextStyle(
+                                  color: isSelected
+                                      ? Colors.white.withAlpha(230)
+                                      : const Color(0xFF64748B),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
                                 ),
-                              ],
+                              ),
                             ],
                           ),
                         ),
@@ -210,7 +213,42 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                     },
                   ),
                 ),
-                const SizedBox(height: 12),
+
+                // Selected Day Header (e.g. Thursday, Oct 9)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        fullDateHeader,
+                        style: const TextStyle(
+                          color: Color(0xFF0F172A),
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: -0.3,
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: dayCourses.isEmpty ? const Color(0xFFF1F5F9) : const Color(0xFFEFF6FF),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          dayCourses.isEmpty
+                              ? 'No classes'
+                              : '${dayCourses.length} ${dayCourses.length == 1 ? 'class' : 'classes'}',
+                          style: TextStyle(
+                            color: dayCourses.isEmpty ? const Color(0xFF64748B) : const Color(0xFF2563EB),
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
 
                 // Course List or Empty State
                 Expanded(
@@ -242,7 +280,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                                 ),
                                 const SizedBox(height: 16),
                                 Text(
-                                  'Libur! Tidak ada kuliah hari ${_days[_selectedDayIndex]}',
+                                  'No classes scheduled for ${DateFormat('EEEE').format(selectedDate)}',
                                   textAlign: TextAlign.center,
                                   style: const TextStyle(
                                     fontSize: 16.5,
@@ -252,7 +290,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                                 ),
                                 const SizedBox(height: 6),
                                 Text(
-                                  'Waktunya bersantai, istirahat, atau menyicil tugas.',
+                                  'Time to relax, recharge, or catch up on your assignments.',
                                   textAlign: TextAlign.center,
                                   style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
                                 ),
@@ -265,7 +303,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                                   ),
                                   onPressed: _openAddCourseDialog,
                                   icon: const Icon(Icons.add, size: 18),
-                                  label: const Text('Tambah Jadwal Kuliah'),
+                                  label: const Text('Add Class Schedule'),
                                 ),
                               ],
                             ),
@@ -297,11 +335,11 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           floatingActionButton: FloatingActionButton.extended(
             backgroundColor: const Color(0xFF2563EB),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            tooltip: 'Tambah Jadwal',
+            tooltip: 'Add Schedule',
             onPressed: _openAddCourseDialog,
             icon: const Icon(Icons.add_rounded, color: Colors.white),
             label: const Text(
-              'Tambah Jadwal',
+              'Add Schedule',
               style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
             ),
           ),

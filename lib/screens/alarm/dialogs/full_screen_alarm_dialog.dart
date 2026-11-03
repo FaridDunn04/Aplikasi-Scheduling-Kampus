@@ -10,7 +10,7 @@ class FullScreenAlarmDialog extends StatefulWidget {
   const FullScreenAlarmDialog({
     super.key,
     required this.task,
-    this.soundTitle = 'Chime Lembut',
+    this.soundTitle = 'Soft Chime',
   });
 
   @override
@@ -34,7 +34,7 @@ class _FullScreenAlarmDialogState extends State<FullScreenAlarmDialog>
       CurvedAnimation(parent: _animController, curve: Curves.easeInOut),
     );
 
-    // Putar nada dering alarm sungguhan
+    // Play actual alarm ringtone
     AlarmNotificationService.instance.playAlarmSound(widget.task.alarmSoundId);
   }
 
@@ -62,7 +62,7 @@ class _FullScreenAlarmDialogState extends State<FullScreenAlarmDialog>
               Column(
                 children: [
                   const Text(
-                    'PENGINGAT TUGAS KULIAH',
+                    'ASSIGNMENT REMINDER',
                     style: TextStyle(
                       color: Colors.white70,
                       fontSize: 13,
@@ -77,7 +77,7 @@ class _FullScreenAlarmDialogState extends State<FullScreenAlarmDialog>
                       const Icon(Icons.music_note, color: Colors.amber, size: 18),
                       const SizedBox(width: 6),
                       Text(
-                        'Memutar: ${widget.soundTitle}',
+                        'Playing: ${widget.soundTitle}',
                         style: const TextStyle(color: Colors.amber, fontSize: 13),
                       ),
                     ],
@@ -150,7 +150,7 @@ class _FullScreenAlarmDialogState extends State<FullScreenAlarmDialog>
               // Action Buttons: Snooze & Dismiss
               Column(
                 children: [
-                  // Tombol Tunda 10 Menit (Snooze)
+                  // Snooze 10 Minutes
                   SizedBox(
                     width: double.infinity,
                     height: 52,
@@ -167,21 +167,21 @@ class _FullScreenAlarmDialogState extends State<FullScreenAlarmDialog>
                         Navigator.pop(context);
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text('Alarm ditunda 10 menit (Snooze)'),
+                            content: Text('Alarm snoozed for 10 minutes'),
                             backgroundColor: Colors.orange,
                           ),
                         );
                       },
                       icon: const Icon(Icons.snooze),
                       label: const Text(
-                        'Tunda 10 Menit (Snooze)',
+                        'Snooze (10 Minutes)',
                         style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                       ),
                     ),
                   ),
                   const SizedBox(height: 12),
 
-                  // Tombol Matikan Alarm (Dismiss)
+                  // Dismiss Button
                   SizedBox(
                     width: double.infinity,
                     height: 54,
@@ -197,13 +197,13 @@ class _FullScreenAlarmDialogState extends State<FullScreenAlarmDialog>
                         Navigator.pop(context);
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text('Alarm dimatikan'),
+                            content: Text('Alarm dismissed'),
                           ),
                         );
                       },
                       icon: const Icon(Icons.stop_circle_outlined),
                       label: const Text(
-                        'Matikan Alarm (Dismiss)',
+                        'Dismiss Alarm',
                         style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                       ),
                     ),

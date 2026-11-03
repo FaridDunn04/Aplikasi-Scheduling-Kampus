@@ -171,19 +171,19 @@ class AppStateManager extends ChangeNotifier {
     final endMin = DateTimeUtils.timeStringToMinutes(course.endTime);
 
     if (currentMinutes >= startMin && currentMinutes <= endMin) {
-      return 'Sedang Berlangsung';
+      return 'Ongoing Now';
     }
 
     final diff = startMin - currentMinutes;
-    if (diff <= 0) return 'Selesai';
+    if (diff <= 0) return 'Finished';
     if (diff < 60) {
-      return 'Mulai dalam $diff menit';
+      return 'Starts in ${diff}m';
     } else {
       final hours = diff ~/ 60;
       final mins = diff % 60;
       return mins > 0
-          ? 'Mulai dalam $hours jam $mins mnt'
-          : 'Mulai dalam $hours jam';
+          ? 'Starts in ${hours}h ${mins}m'
+          : 'Starts in ${hours}h';
     }
   }
 
@@ -239,6 +239,15 @@ class AppStateManager extends ChangeNotifier {
   }
 
   Future<void> toggleTaskCompleted(Task task) async {
+    // Jika tugas sudah selesai dan batas waktu deadline telah lewat,
+    // tidak dapat diaktifkan kembali lewat centang (harus diedit tanggal deadlinenya).
+    if (task.isCompleted) {
+      final deadline = DateTimeUtils.parseIso(task.deadlineDatetime);
+      if (deadline.isBefore(DateTime.now())) {
+        return;
+      }
+    }
+
     final updated = task.copyWith(
       isCompleted: !task.isCompleted,
       updatedAt: DateTime.now().toIso8601String(),

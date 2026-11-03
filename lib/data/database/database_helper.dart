@@ -116,7 +116,7 @@ class DatabaseHelper {
     final defaults = [
       {
         'id': 'sound_default_1',
-        'title': 'Chime Lembut (Default)',
+        'title': 'Soft Chime (Default)',
         'source_type': 'DEFAULT',
         'local_file_path': 'assets/sounds/chime.mp3',
         'remote_url': null,

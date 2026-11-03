@@ -1,5 +1,9 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:audioplayers/audioplayers.dart';
 import '../../../data/models/alarm_sound_model.dart';
 import '../../../state/app_state_manager.dart';
 
@@ -12,11 +16,13 @@ class AlarmCatalogDialog extends StatefulWidget {
 
 class _AlarmCatalogDialogState extends State<AlarmCatalogDialog> with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  final AudioPlayer _audioPlayer = AudioPlayer();
+  String? _currentlyPlayingId;
 
-  // Mock katalog online (PRD Bab 6.1.3: Unduh Nada Alarm Online)
+  // Mock online catalog
   final List<Map<String, String>> _cloudCatalog = [
     {
-      'title': 'Bell Universitas Modern',
+      'title': 'Modern Campus Bell',
       'url': 'https://unisched.app/sounds/campus_bell.mp3',
       'duration': '0:12',
     },
@@ -41,21 +47,79 @@ class _AlarmCatalogDialogState extends State<AlarmCatalogDialog> with SingleTick
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _audioPlayer.onPlayerComplete.listen((_) {
+      if (mounted) {
+        setState(() => _currentlyPlayingId = null);
+      }
+    });
   }
 
   @override
   void dispose() {
     _tabController.dispose();
+    _audioPlayer.stop();
+    _audioPlayer.dispose();
     super.dispose();
+  }
+
+  Future<void> _togglePreviewSound(AlarmSound sound) async {
+    if (_currentlyPlayingId == sound.id) {
+      await _audioPlayer.stop();
+      if (mounted) setState(() => _currentlyPlayingId = null);
+      return;
+    }
+
+    try {
+      await _audioPlayer.stop();
+      await _audioPlayer.setVolume(1.0);
+
+      if (sound.sourceType == 'LOCAL_IMPORT' || sound.sourceType == 'CLOUD_DOWNLOAD') {
+        final file = File(sound.localFilePath);
+        if (await file.exists()) {
+          await _audioPlayer.play(DeviceFileSource(sound.localFilePath));
+        } else {
+          // Fallback to chime if file was removed
+          await _audioPlayer.play(AssetSource('sounds/chime.wav'));
+        }
+      } else {
+        // Default sounds
+        final t = sound.title.toLowerCase();
+        if (t.contains('beep') || sound.id == 'sound_default_2') {
+          await _audioPlayer.play(AssetSource('sounds/beep.wav'));
+        } else if (t.contains('energetic') || sound.id == 'sound_default_3') {
+          await _audioPlayer.play(AssetSource('sounds/energetic.wav'));
+        } else {
+          await _audioPlayer.play(AssetSource('sounds/chime.wav'));
+        }
+      }
+
+      if (mounted) {
+        setState(() => _currentlyPlayingId = sound.id);
+      }
+    } catch (e) {
+      debugPrint('[AlarmCatalog] Error previewing sound: $e');
+    }
   }
 
   Future<void> _downloadCloudSound(Map<String, String> item) async {
     final nowIso = DateTime.now().toIso8601String();
+    final appDir = await getApplicationDocumentsDirectory();
+    final cloudSoundsDir = Directory('${appDir.path}/cloud_sounds');
+    if (!await cloudSoundsDir.exists()) {
+      await cloudSoundsDir.create(recursive: true);
+    }
+
+    final targetPath = '${cloudSoundsDir.path}/${item['title']!.toLowerCase().replaceAll(' ', '_')}.mp3';
+    final targetFile = File(targetPath);
+    if (!await targetFile.exists()) {
+      await targetFile.create(recursive: true);
+    }
+
     final newSound = AlarmSound(
       id: const Uuid().v4(),
       title: item['title']!,
       sourceType: 'CLOUD_DOWNLOAD',
-      localFilePath: 'local_storage/sounds/${item['title']!.toLowerCase().replaceAll(' ', '_')}.mp3',
+      localFilePath: targetPath,
       remoteUrl: item['url'],
       createdAt: nowIso,
     );
@@ -65,68 +129,114 @@ class _AlarmCatalogDialogState extends State<AlarmCatalogDialog> with SingleTick
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Berhasil mengunduh "${item['title']}" ke penyimpanan lokal!'),
+          content: Text('Successfully downloaded "${item['title']}" to local storage!'),
           backgroundColor: Colors.green,
         ),
       );
     }
   }
 
-  void _importLocalSoundManual() {
-    final titleController = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Import Audio Lokal HP'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'Pilih file .mp3 / .wav dari memori internal HP:',
-              style: TextStyle(fontSize: 13, color: Colors.grey),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: titleController,
-              decoration: const InputDecoration(
-                labelText: 'Nama Tampilan Audio',
-                hintText: 'contoh: Lagu Semangat Pagi',
+  Future<void> _importLocalSoundManual() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['mp3', 'wav', 'm4a', 'aac', 'ogg'],
+      );
+
+      if (result == null || result.files.isEmpty) return;
+
+      final pickedFile = result.files.first;
+      final filePath = pickedFile.path;
+      if (filePath == null) return;
+
+      final fileName = pickedFile.name;
+      final defaultTitle = fileName.contains('.')
+          ? fileName.substring(0, fileName.lastIndexOf('.'))
+          : fileName;
+
+      if (!mounted) return;
+
+      final titleController = TextEditingController(text: defaultTitle);
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Import Local Audio File'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Selected File: $fileName',
+                style: const TextStyle(fontSize: 12.5, color: Colors.blue, fontWeight: FontWeight.w600),
               ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: titleController,
+                decoration: const InputDecoration(
+                  labelText: 'Audio Display Name',
+                  hintText: 'e.g., Morning Motivation Sound',
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Save Audio'),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Batal'),
+      );
+
+      if (confirmed == true && mounted) {
+        final title = titleController.text.trim().isEmpty ? defaultTitle : titleController.text.trim();
+
+        // Copy file to app's documents directory
+        final appDir = await getApplicationDocumentsDirectory();
+        final customSoundsDir = Directory('${appDir.path}/custom_sounds');
+        if (!await customSoundsDir.exists()) {
+          await customSoundsDir.create(recursive: true);
+        }
+
+        final ext = pickedFile.extension ?? 'mp3';
+        final targetPath = '${customSoundsDir.path}/${DateTime.now().millisecondsSinceEpoch}.$ext';
+        await File(filePath).copy(targetPath);
+
+        final nowIso = DateTime.now().toIso8601String();
+        final imported = AlarmSound(
+          id: const Uuid().v4(),
+          title: title,
+          sourceType: 'LOCAL_IMPORT',
+          localFilePath: targetPath,
+          remoteUrl: null,
+          createdAt: nowIso,
+        );
+
+        await AppStateManager.instance.addAlarmSound(imported);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Audio "$title" imported successfully from storage!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to pick audio file: $e'),
+            backgroundColor: Colors.red,
           ),
-          FilledButton(
-            onPressed: () async {
-              final title = titleController.text.trim();
-              if (title.isNotEmpty) {
-                Navigator.pop(ctx);
-                final nowIso = DateTime.now().toIso8601String();
-                final imported = AlarmSound(
-                  id: const Uuid().v4(),
-                  title: title,
-                  sourceType: 'LOCAL_IMPORT',
-                  localFilePath: 'app_documents/custom_sounds/${DateTime.now().millisecondsSinceEpoch}.mp3',
-                  remoteUrl: null,
-                  createdAt: nowIso,
-                );
-                await AppStateManager.instance.addAlarmSound(imported);
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Audio "$title" berhasil diimpor!')),
-                  );
-                }
-              }
-            },
-            child: const Text('Simpan Audio'),
-          ),
-        ],
-      ),
-    );
+        );
+      }
+    }
   }
 
   @override
@@ -147,7 +257,7 @@ class _AlarmCatalogDialogState extends State<AlarmCatalogDialog> with SingleTick
                       Icon(Icons.library_music_outlined, color: Colors.blue),
                       SizedBox(width: 8),
                       Text(
-                        'Koleksi Suara Alarm',
+                        'Alarm Sounds Catalog',
                         style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                     ],
@@ -163,8 +273,8 @@ class _AlarmCatalogDialogState extends State<AlarmCatalogDialog> with SingleTick
               TabBar(
                 controller: _tabController,
                 tabs: const [
-                  Tab(text: 'Tersimpan (Lokal)'),
-                  Tab(text: 'Katalog Cloud (Online)'),
+                  Tab(text: 'Saved (Local)'),
+                  Tab(text: 'Cloud Catalog (Online)'),
                 ],
               ),
               const SizedBox(height: 12),
@@ -173,7 +283,7 @@ class _AlarmCatalogDialogState extends State<AlarmCatalogDialog> with SingleTick
                 child: TabBarView(
                   controller: _tabController,
                   children: [
-                    // Tab 1: Tersimpan di HP
+                    // Tab 1: Saved on Device
                     ListenableBuilder(
                       listenable: AppStateManager.instance,
                       builder: (context, _) {
@@ -184,34 +294,71 @@ class _AlarmCatalogDialogState extends State<AlarmCatalogDialog> with SingleTick
                             Expanded(
                               child: ListView.separated(
                                 itemCount: sounds.length,
-                                separatorBuilder: (_, __) => const Divider(height: 1),
+                                separatorBuilder: (_, _) => const Divider(height: 1),
                                 itemBuilder: (context, index) {
                                   final s = sounds[index];
                                   final isDefault = s.sourceType == 'DEFAULT';
+                                  final isPlaying = _currentlyPlayingId == s.id;
 
                                   return ListTile(
-                                    contentPadding: EdgeInsets.zero,
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 4),
                                     leading: CircleAvatar(
-                                      backgroundColor: isDefault ? Colors.blue.withAlpha(30) : Colors.purple.withAlpha(30),
+                                      backgroundColor: isPlaying
+                                          ? Colors.green.withAlpha(40)
+                                          : (isDefault ? Colors.blue.withAlpha(30) : Colors.purple.withAlpha(30)),
                                       child: Icon(
-                                        isDefault ? Icons.music_note : Icons.audio_file,
-                                        color: isDefault ? Colors.blue : Colors.purple,
+                                        isPlaying
+                                            ? Icons.volume_up_rounded
+                                            : (isDefault ? Icons.music_note : Icons.audio_file),
+                                        color: isPlaying
+                                            ? Colors.green
+                                            : (isDefault ? Colors.blue : Colors.purple),
                                         size: 20,
                                       ),
                                     ),
                                     title: Text(s.title, style: const TextStyle(fontWeight: FontWeight.w600)),
                                     subtitle: Text(
-                                      s.sourceType,
-                                      style: const TextStyle(fontSize: 11, color: Colors.grey),
+                                      isPlaying
+                                          ? 'Playing preview...'
+                                          : (isDefault ? 'Default Tone' : 'Local Storage Audio'),
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: isPlaying ? Colors.green : Colors.grey,
+                                        fontWeight: isPlaying ? FontWeight.bold : FontWeight.normal,
+                                      ),
                                     ),
-                                    trailing: isDefault
-                                        ? const Chip(label: Text('Bawaan', style: TextStyle(fontSize: 10)))
-                                        : IconButton(
+                                    trailing: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        IconButton(
+                                          icon: Icon(
+                                            isPlaying ? Icons.stop_circle_rounded : Icons.play_circle_fill_rounded,
+                                            color: isPlaying ? Colors.redAccent : const Color(0xFF2563EB),
+                                            size: 28,
+                                          ),
+                                          tooltip: isPlaying ? 'Stop' : 'Play Preview',
+                                          onPressed: () => _togglePreviewSound(s),
+                                        ),
+                                        if (isDefault)
+                                          const Chip(label: Text('Default', style: TextStyle(fontSize: 10)))
+                                        else
+                                          IconButton(
                                             icon: const Icon(Icons.delete_outline, size: 20, color: Colors.red),
-                                            onPressed: () {
-                                              AppStateManager.instance.deleteAlarmSound(s.id);
+                                            tooltip: 'Delete Sound',
+                                            onPressed: () async {
+                                              if (_currentlyPlayingId == s.id) {
+                                                await _audioPlayer.stop();
+                                                setState(() => _currentlyPlayingId = null);
+                                              }
+                                              try {
+                                                final f = File(s.localFilePath);
+                                                if (await f.exists()) await f.delete();
+                                              } catch (_) {}
+                                              await AppStateManager.instance.deleteAlarmSound(s.id);
                                             },
                                           ),
+                                      ],
+                                    ),
                                   );
                                 },
                               ),
@@ -222,7 +369,7 @@ class _AlarmCatalogDialogState extends State<AlarmCatalogDialog> with SingleTick
                               child: OutlinedButton.icon(
                                 onPressed: _importLocalSoundManual,
                                 icon: const Icon(Icons.file_upload_outlined),
-                                label: const Text('Import File Audio dari HP (.mp3 / .wav)'),
+                                label: const Text('Import Audio File from Device (.mp3 / .wav)'),
                               ),
                             ),
                           ],
@@ -230,10 +377,10 @@ class _AlarmCatalogDialogState extends State<AlarmCatalogDialog> with SingleTick
                       },
                     ),
 
-                    // Tab 2: Katalog Cloud Online
+                    // Tab 2: Cloud Catalog
                     ListView.separated(
                       itemCount: _cloudCatalog.length,
-                      separatorBuilder: (_, __) => const Divider(height: 1),
+                      separatorBuilder: (_, _) => const Divider(height: 1),
                       itemBuilder: (context, index) {
                         final item = _cloudCatalog[index];
                         return ListTile(
@@ -243,10 +390,10 @@ class _AlarmCatalogDialogState extends State<AlarmCatalogDialog> with SingleTick
                             child: Icon(Icons.cloud_download_outlined, color: Colors.white, size: 20),
                           ),
                           title: Text(item['title']!, style: const TextStyle(fontWeight: FontWeight.w600)),
-                          subtitle: Text('Durasi: ${item['duration']} • Katalog Cloud'),
+                          subtitle: Text('Duration: ${item['duration']} • Cloud Catalog'),
                           trailing: FilledButton.tonal(
                             onPressed: () => _downloadCloudSound(item),
-                            child: const Text('Unduh'),
+                            child: const Text('Download'),
                           ),
                         );
                       },

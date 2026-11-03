@@ -18,11 +18,11 @@ class KrsManagementScreen extends StatelessWidget {
 
         return Scaffold(
           appBar: AppBar(
-            title: const Text('Kelola KRS Semester'),
+            title: const Text('Manage Semester Courses'),
             actions: [
               IconButton(
                 icon: const Icon(Icons.add),
-                tooltip: 'Tambah Mata Kuliah',
+                tooltip: 'Add Course',
                 onPressed: () {
                   showDialog(
                     context: context,
@@ -50,10 +50,10 @@ class KrsManagementScreen extends StatelessWidget {
                   children: [
                     Column(
                       children: [
-                        const Text('Total Mata Kuliah', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                        const Text('Total Courses', style: TextStyle(fontSize: 12, color: Colors.grey)),
                         const SizedBox(height: 4),
                         Text(
-                          '${courses.length} Matkul',
+                          '${courses.length} ${courses.length == 1 ? 'Course' : 'Courses'}',
                           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                         ),
                       ],
@@ -61,10 +61,10 @@ class KrsManagementScreen extends StatelessWidget {
                     Container(height: 32, width: 1, color: Colors.grey.withAlpha(60)),
                     Column(
                       children: [
-                        const Text('Beban Studi', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                        const Text('Study Load', style: TextStyle(fontSize: 12, color: Colors.grey)),
                         const SizedBox(height: 4),
                         Text(
-                          '$totalSks SKS',
+                          '$totalSks Credits',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -87,12 +87,12 @@ class KrsManagementScreen extends StatelessWidget {
                             Icon(Icons.school_outlined, size: 64, color: Colors.grey.shade400),
                             const SizedBox(height: 12),
                             const Text(
-                              'Belum ada mata kuliah di KRS',
+                              'No courses added yet',
                               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                             ),
                             const SizedBox(height: 8),
                             const Text(
-                              'Gunakan tombol + di atas untuk menambah mata kuliah.',
+                              'Tap the + button above to add a new course.',
                               style: TextStyle(fontSize: 13, color: Colors.grey),
                             ),
                           ],
@@ -101,7 +101,7 @@ class KrsManagementScreen extends StatelessWidget {
                     : ListView.separated(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         itemCount: courses.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 8),
+                        separatorBuilder: (_, _) => const SizedBox(height: 8),
                         itemBuilder: (context, index) {
                           final c = courses[index];
                           final dayName = DateTimeUtils.getDayName(c.dayOfWeek);
@@ -161,12 +161,12 @@ class KrsManagementScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Hapus Mata Kuliah?'),
-        content: Text('Apakah Anda yakin ingin menghapus "${course.courseName}" dari daftar KRS?'),
+        title: const Text('Delete Course?'),
+        content: Text('Are you sure you want to remove "${course.courseName}" from your course list?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Batal'),
+            child: const Text('Cancel'),
           ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
@@ -174,7 +174,7 @@ class KrsManagementScreen extends StatelessWidget {
               Navigator.pop(ctx);
               await AppStateManager.instance.deleteCourse(course.id);
             },
-            child: const Text('Hapus'),
+            child: const Text('Delete'),
           ),
         ],
       ),

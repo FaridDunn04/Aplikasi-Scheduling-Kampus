@@ -83,7 +83,7 @@ class TodayCoursesSection extends StatelessWidget {
                 Icon(Icons.bedtime_outlined, size: 36, color: Colors.blue.shade300),
                 const SizedBox(height: 10),
                 const Text(
-                  'Tidak ada jadwal kuliah hari ini. Waktunya istirahat atau cicil tugas! ✨',
+                  'No classes scheduled for today. Time to relax or catch up on tasks! ✨',
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 13, color: Color(0xFF64748B), height: 1.4),
                 ),

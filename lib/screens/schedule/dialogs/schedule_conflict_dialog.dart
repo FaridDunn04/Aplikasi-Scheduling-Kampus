@@ -18,7 +18,7 @@ class ScheduleConflictDialog extends StatelessWidget {
     return AlertDialog(
       icon: const Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 48),
       title: const Text(
-        'Peringatan Jadwal Bentrok',
+        'Schedule Conflict Warning',
         style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
       ),
       content: Column(
@@ -26,7 +26,7 @@ class ScheduleConflictDialog extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Waktu kuliah yang Anda pilih bertabrakan dengan mata kuliah yang sudah ada:',
+            'The selected class time conflicts with an existing course:',
             style: TextStyle(fontSize: 14),
           ),
           const SizedBox(height: 12),
@@ -46,11 +46,11 @@ class ScheduleConflictDialog extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Waktu yang sudah ada: ${conflictingCourse.startTime} - ${conflictingCourse.endTime}',
+                  'Existing Time: ${conflictingCourse.startTime} - ${conflictingCourse.endTime}',
                   style: const TextStyle(fontSize: 13, color: Colors.black87),
                 ),
                 Text(
-                  'Waktu baru: $newStartTime - $newEndTime',
+                  'New Time: $newStartTime - $newEndTime',
                   style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.deepOrange),
                 ),
               ],
@@ -58,20 +58,20 @@ class ScheduleConflictDialog extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           const Text(
-            'Apakah Anda tetap ingin menyimpan jadwal ini?',
+            'Do you still want to save this schedule?',
             style: TextStyle(fontSize: 13, color: Colors.grey),
           ),
         ],
       ),
       actions: [
         OutlinedButton(
-          onPressed: () => Navigator.pop(context, false), // Batal
-          child: const Text('Batal & Ubah Jam'),
+          onPressed: () => Navigator.pop(context, false),
+          child: const Text('Cancel & Change Time'),
         ),
         FilledButton(
           style: FilledButton.styleFrom(backgroundColor: Colors.orange.shade800),
-          onPressed: () => Navigator.pop(context, true), // Tetap Simpan
-          child: const Text('Tetap Simpan'),
+          onPressed: () => Navigator.pop(context, true),
+          child: const Text('Save Anyway'),
         ),
       ],
     );

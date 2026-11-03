@@ -102,7 +102,9 @@ class _TaskFormDialogState extends State<TaskFormDialog> {
   Future<void> _pickDeadline() async {
     final pickedDate = await showDatePicker(
       context: context,
-      initialDate: _deadlineDate,
+      initialDate: _deadlineDate.isBefore(DateTime.now())
+          ? DateTime.now()
+          : _deadlineDate,
       firstDate: DateTime(2020),
       lastDate: DateTime(2035),
     );
@@ -115,6 +117,19 @@ class _TaskFormDialogState extends State<TaskFormDialog> {
         setState(() {
           _deadlineDate = pickedDate;
           _deadlineTime = pickedTime;
+
+          // Jika pengingat berada setelah deadline baru atau sudah kadaluwarsa,
+          // sesuaikan pengingat agar otomatis relevan
+          final newDeadline = _combineDateAndTime(pickedDate, pickedTime);
+          final currentReminder = _combineDateAndTime(_reminderDate, _reminderTime);
+          if (currentReminder.isAfter(newDeadline) || currentReminder.isBefore(DateTime.now())) {
+            final candidateReminder = newDeadline.subtract(const Duration(hours: 1));
+            final adjusted = candidateReminder.isAfter(DateTime.now())
+                ? candidateReminder
+                : newDeadline;
+            _reminderDate = DateTime(adjusted.year, adjusted.month, adjusted.day);
+            _reminderTime = TimeOfDay(hour: adjusted.hour, minute: adjusted.minute);
+          }
         });
       }
     }
@@ -123,7 +138,9 @@ class _TaskFormDialogState extends State<TaskFormDialog> {
   Future<void> _pickReminder() async {
     final pickedDate = await showDatePicker(
       context: context,
-      initialDate: _reminderDate,
+      initialDate: _reminderDate.isBefore(DateTime.now())
+          ? DateTime.now()
+          : _reminderDate,
       firstDate: DateTime(2020),
       lastDate: DateTime(2035),
     );
@@ -145,15 +162,16 @@ class _TaskFormDialogState extends State<TaskFormDialog> {
     if (_isSubmitting) return;
     if (!_formKey.currentState!.validate()) return;
 
+    final now = DateTime.now();
     final deadline = _combineDateAndTime(_deadlineDate, _deadlineTime);
     final reminder = _combineDateAndTime(_reminderDate, _reminderTime);
 
-    // Validasi Waktu Pengingat (PRD Bab 7.2): reminder_datetime <= deadline_datetime
+    // Reminder Time Validation: reminder_datetime <= deadline_datetime
     if (reminder.isAfter(deadline)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Waktu pengingat tidak boleh melebihi batas waktu deadline!',
+            'Reminder time cannot be later than deadline!',
           ),
           backgroundColor: Colors.red,
         ),
@@ -164,7 +182,11 @@ class _TaskFormDialogState extends State<TaskFormDialog> {
     setState(() => _isSubmitting = true);
 
     try {
-      final nowIso = DateTime.now().toIso8601String();
+      final nowIso = now.toIso8601String();
+
+      final bool isDeadlineInFuture = deadline.isAfter(now);
+      final bool newIsCompleted = !isDeadlineInFuture;
+
       final task = Task(
         id: widget.taskToEdit?.id ?? const Uuid().v4(),
         courseId: _selectedCourseId,
@@ -176,7 +198,7 @@ class _TaskFormDialogState extends State<TaskFormDialog> {
         reminderDatetime: DateTimeUtils.toIso8601String(reminder),
         isAlarmEnabled: _isAlarmEnabled,
         alarmSoundId: _isAlarmEnabled ? _selectedAlarmSoundId : null,
-        isCompleted: widget.taskToEdit?.isCompleted ?? false,
+        isCompleted: newIsCompleted,
         sharedOriginCode: widget.taskToEdit?.sharedOriginCode,
         taskType: _taskType,
         createdAt: widget.taskToEdit?.createdAt ?? nowIso,
@@ -190,13 +212,18 @@ class _TaskFormDialogState extends State<TaskFormDialog> {
 
       if (mounted) {
         Navigator.pop(context, true);
+
+        String successMessage = widget.taskToEdit != null
+            ? 'Task updated successfully!'
+            : 'Task added successfully!';
+        if (widget.taskToEdit?.isCompleted == true && !newIsCompleted) {
+          successMessage =
+              'Deadline updated! Task has been reactivated to the active task list.';
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              widget.taskToEdit != null
-                  ? 'Tugas berhasil diperbarui!'
-                  : 'Tugas berhasil ditambahkan!',
-            ),
+            content: Text(successMessage),
             backgroundColor: Colors.green,
             behavior: SnackBarBehavior.floating,
           ),
@@ -207,7 +234,7 @@ class _TaskFormDialogState extends State<TaskFormDialog> {
         setState(() => _isSubmitting = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Gagal menyimpan tugas: $e'),
+            content: Text('Failed to save task: $e'),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
           ),
@@ -240,7 +267,7 @@ class _TaskFormDialogState extends State<TaskFormDialog> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      isEdit ? 'Edit Tugas Kuliah' : 'Tambah Tugas Baru',
+                      isEdit ? 'Edit Assignment' : 'Add New Assignment',
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -259,19 +286,68 @@ class _TaskFormDialogState extends State<TaskFormDialog> {
                     padding: const EdgeInsets.symmetric(vertical: 16.0),
                     clipBehavior: Clip.none,
                     children: [
-                      // Pilih Mata Kuliah (Dropdown KRS)
+                      // Status Info Banner when editing a completed task
+                      if (isEdit && widget.taskToEdit!.isCompleted) ...[
+                        Container(
+                          margin: const EdgeInsets.only(bottom: 16),
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: deadlineCombined.isAfter(DateTime.now())
+                                ? const Color(0xFFEFF6FF)
+                                : const Color(0xFFFEF3C7),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: deadlineCombined.isAfter(DateTime.now())
+                                  ? const Color(0xFF93C5FD)
+                                  : const Color(0xFFFCD34D),
+                            ),
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Icon(
+                                deadlineCombined.isAfter(DateTime.now())
+                                    ? Icons.check_circle_outline_rounded
+                                    : Icons.info_outline_rounded,
+                                color: deadlineCombined.isAfter(DateTime.now())
+                                    ? const Color(0xFF2563EB)
+                                    : const Color(0xFFD97706),
+                                size: 20,
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  deadlineCombined.isAfter(DateTime.now())
+                                      ? 'Deadline is set to a future date. This task will be automatically reactivated and appear in the task list.'
+                                      : 'This task is marked as completed because the deadline has passed. Set the deadline to a future date to reactivate it in your task list.',
+                                  style: TextStyle(
+                                    fontSize: 12.5,
+                                    color: deadlineCombined.isAfter(DateTime.now())
+                                        ? const Color(0xFF1E40AF)
+                                        : const Color(0xFF92400E),
+                                    height: 1.35,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+
+                      // Course Dropdown
                       DropdownButtonFormField<String?>(
-                        value: _selectedCourseId,
+                        initialValue: _selectedCourseId,
                         isExpanded: true,
                         decoration: const InputDecoration(
-                          labelText: 'Mata Kuliah',
+                          labelText: 'Course',
                           prefixIcon: Icon(Icons.book_outlined),
                         ),
                         items: [
                           const DropdownMenuItem<String?>(
                             value: null,
                             child: Text(
-                              'Tugas Umum (Tanpa Mata Kuliah)',
+                              'General Task (No Course)',
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
@@ -301,9 +377,9 @@ class _TaskFormDialogState extends State<TaskFormDialog> {
                       ),
                       const SizedBox(height: 14),
 
-                      // Pilihan Jenis / Kategori Tugas: Lecture vs Lab
+                      // Task Category Selection: Lecture vs Lab
                       const Text(
-                        'Kategori Tugas',
+                        'Task Category',
                         style: TextStyle(
                           fontWeight: FontWeight.w600,
                           fontSize: 13,
@@ -319,7 +395,7 @@ class _TaskFormDialogState extends State<TaskFormDialog> {
                                   setState(() => _taskType = 'lecture'),
                               child: Container(
                                 padding: const EdgeInsets.symmetric(
-                                  vertical: 11,
+                                   vertical: 11,
                                 ),
                                 decoration: BoxDecoration(
                                   color: _taskType == 'lecture'
@@ -410,16 +486,16 @@ class _TaskFormDialogState extends State<TaskFormDialog> {
                       ),
                       const SizedBox(height: 14),
 
-                      // Judul Tugas
+                      // Task Title
                       TextFormField(
                         controller: _titleController,
                         decoration: InputDecoration(
                           labelText: _taskType == 'lab'
-                              ? 'Nama Tugas Praktikum *'
-                              : 'Nama Tugas Kuliah *',
+                              ? 'Lab Assignment Name *'
+                              : 'Course Assignment Name *',
                           hintText: _taskType == 'lab'
-                              ? 'contoh: Laporan Praktikum Modul 2'
-                              : 'contoh: Makalah Bab 3 / Presentasi API',
+                              ? 'e.g., Module 2 Lab Report'
+                              : 'e.g., Chapter 3 Paper / API Presentation',
                           prefixIcon: Icon(
                             _taskType == 'lab'
                                 ? Icons.biotech_outlined
@@ -428,28 +504,28 @@ class _TaskFormDialogState extends State<TaskFormDialog> {
                         ),
                         validator: (val) {
                           if (val == null || val.trim().isEmpty) {
-                            return 'Nama tugas wajib diisi';
+                            return 'Task name is required';
                           }
                           return null;
                         },
                       ),
                       const SizedBox(height: 12),
 
-                      // Deskripsi Tugas
+                      // Task Description
                       TextFormField(
                         controller: _descController,
                         maxLines: 2,
                         decoration: const InputDecoration(
-                          labelText: 'Catatan / Detail Instruksi (Opsional)',
-                          hintText: 'Kumpulkan via portal e-learning kampus format PDF',
+                          labelText: 'Notes / Detailed Instructions (Optional)',
+                          hintText: 'e.g., Submit via campus LMS portal in PDF format',
                           prefixIcon: Icon(Icons.notes),
                         ),
                       ),
                       const SizedBox(height: 16),
 
-                      // Tanggal & Jam Deadline
+                      // Deadline Date & Time
                       const Text(
-                        'Batas Waktu Pengumpulan (Deadline)',
+                        'Submission Deadline',
                         style: TextStyle(
                           fontWeight: FontWeight.w600,
                           fontSize: 13,
@@ -467,18 +543,18 @@ class _TaskFormDialogState extends State<TaskFormDialog> {
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                         subtitle: const Text(
-                          'Klik tombol untuk ubah tanggal & jam deadline',
+                          'Tap button to change deadline date & time',
                         ),
                         trailing: OutlinedButton(
                           onPressed: _pickDeadline,
-                          child: const Text('Ubah'),
+                          child: const Text('Change'),
                         ),
                       ),
                       const SizedBox(height: 12),
 
-                      // Tanggal & Jam Pengingat
+                      // Reminder Date & Time
                       const Text(
-                        'Waktu Pengingat Alarm (Reminder)',
+                        'Alarm Reminder Time',
                         style: TextStyle(
                           fontWeight: FontWeight.w600,
                           fontSize: 13,
@@ -493,11 +569,11 @@ class _TaskFormDialogState extends State<TaskFormDialog> {
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                         subtitle: const Text(
-                          'Maksimal sama dengan waktu deadline',
+                          'Must be earlier than or equal to deadline',
                         ),
                         trailing: OutlinedButton(
                           onPressed: _pickReminder,
-                          child: const Text('Ubah'),
+                          child: const Text('Change'),
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -505,11 +581,11 @@ class _TaskFormDialogState extends State<TaskFormDialog> {
                       // Toggle Alarm
                       SwitchListTile(
                         contentPadding: EdgeInsets.zero,
-                        title: const Text('Bunyikan Alarm Audio'),
+                        title: const Text('Sound Audio Alarm'),
                         subtitle: Text(
                           _isAlarmEnabled
-                              ? 'Notifikasi + Pemutaran Audio Alarm'
-                              : 'Hanya Standard Push Notification',
+                              ? 'Push Notification + Audio Alarm'
+                              : 'Standard Push Notification Only',
                           style: const TextStyle(fontSize: 12),
                         ),
                         value: _isAlarmEnabled,
@@ -521,14 +597,14 @@ class _TaskFormDialogState extends State<TaskFormDialog> {
                         const SizedBox(height: 8),
                         // Dropdown Suara Alarm
                         DropdownButtonFormField<String>(
-                          value:
+                          initialValue:
                               _selectedAlarmSoundId ??
                               (alarmSounds.isNotEmpty
                                   ? alarmSounds.first.id
                                   : null),
                           isExpanded: true,
                           decoration: const InputDecoration(
-                            labelText: 'Pilih Suara Alarm',
+                            labelText: 'Select Alarm Sound',
                             prefixIcon: Icon(Icons.music_note_outlined),
                           ),
                           items: alarmSounds.map((sound) {
@@ -563,7 +639,7 @@ class _TaskFormDialogState extends State<TaskFormDialog> {
                               color: Colors.white,
                             ),
                           )
-                        : Text(isEdit ? 'Simpan Perubahan' : 'Tambahkan Tugas'),
+                        : Text(isEdit ? 'Save Changes' : 'Add Task'),
                   ),
                 ),
               ],

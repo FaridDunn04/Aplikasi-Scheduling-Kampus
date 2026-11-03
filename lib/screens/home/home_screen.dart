@@ -54,7 +54,7 @@ class HomeScreen extends StatelessWidget {
                             text: const TextSpan(
                               children: [
                                 TextSpan(
-                                  text: 'Sync',
+                                  text: 'Uni',
                                   style: TextStyle(
                                     color: Color(0xFF0F172A),
                                     fontSize: 26,
@@ -63,7 +63,7 @@ class HomeScreen extends StatelessWidget {
                                   ),
                                 ),
                                 TextSpan(
-                                  text: 'Class',
+                                  text: 'Flow',
                                   style: TextStyle(
                                     color: Color(0xFF4F46E5),
                                     fontSize: 26,

@@ -115,7 +115,7 @@ class _CourseFormDialogState extends State<CourseFormDialog> {
     if (endMinutes <= startMinutes) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Jam Selesai harus lebih lambat dari Jam Mulai!'),
+          content: Text('End time must be later than start time!'),
           backgroundColor: Colors.red,
         ),
       );
@@ -125,7 +125,7 @@ class _CourseFormDialogState extends State<CourseFormDialog> {
     final startStr = _formatTimeOfDay(_startTime);
     final endStr = _formatTimeOfDay(_endTime);
 
-    // Cek Bentrok Jadwal (PRD Bab 7.1)
+    // Check Schedule Conflict (PRD Bab 7.1)
     final conflict = await AppStateManager.instance.checkConflict(
       _selectedDay,
       startStr,
@@ -143,7 +143,7 @@ class _CourseFormDialogState extends State<CourseFormDialog> {
         ),
       );
 
-      if (proceed != true) return; // Pengguna membatalkan
+      if (proceed != true) return; // User cancelled
     }
 
     final nowIso = DateTime.now().toIso8601String();
@@ -189,7 +189,7 @@ class _CourseFormDialogState extends State<CourseFormDialog> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      isEdit ? 'Edit Jadwal Kuliah' : 'Tambah Jadwal Kuliah',
+                      isEdit ? 'Edit Class Schedule' : 'Add Class Schedule',
                       style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                     IconButton(
@@ -203,9 +203,9 @@ class _CourseFormDialogState extends State<CourseFormDialog> {
                 Expanded(
                   child: ListView(
                     children: [
-                      // Pilihan Jenis Jadwal: Lecture vs Lab
+                      // Schedule Type: Lecture vs Lab
                       const Text(
-                        'Jenis Jadwal',
+                        'Schedule Type',
                         style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
                       ),
                       const SizedBox(height: 8),
@@ -298,24 +298,24 @@ class _CourseFormDialogState extends State<CourseFormDialog> {
                       ),
                       const SizedBox(height: 14),
 
-                      // Nama Mata Kuliah
+                      // Course Name
                       TextFormField(
                         controller: _nameController,
                         decoration: InputDecoration(
-                          labelText: _courseType == 'lab' ? 'Nama Praktikum *' : 'Nama Mata Kuliah *',
-                          hintText: _courseType == 'lab' ? 'contoh: Praktikum Algoritma' : 'contoh: Pemrograman Web',
+                          labelText: _courseType == 'lab' ? 'Lab Course Name *' : 'Course Name *',
+                          hintText: _courseType == 'lab' ? 'e.g., Algorithms Lab' : 'e.g., Web Programming',
                           prefixIcon: Icon(_courseType == 'lab' ? Icons.science_outlined : Icons.book_outlined),
                         ),
                         validator: (val) {
                           if (val == null || val.trim().isEmpty) {
-                            return 'Nama mata kuliah wajib diisi';
+                            return 'Course name is required';
                           }
                           return null;
                         },
                       ),
                       const SizedBox(height: 12),
 
-                      // Kode & SKS
+                      // Code & Credits
                       Row(
                         children: [
                           Expanded(
@@ -323,7 +323,7 @@ class _CourseFormDialogState extends State<CourseFormDialog> {
                             child: TextFormField(
                               controller: _codeController,
                               decoration: const InputDecoration(
-                                labelText: 'Kode / KRS',
+                                labelText: 'Course Code / ID',
                                 hintText: 'IF204',
                                 prefixIcon: Icon(Icons.tag),
                               ),
@@ -336,7 +336,7 @@ class _CourseFormDialogState extends State<CourseFormDialog> {
                               controller: _sksController,
                               keyboardType: TextInputType.number,
                               decoration: const InputDecoration(
-                                labelText: 'SKS',
+                                labelText: 'Credits (SKS)',
                                 prefixIcon: Icon(Icons.confirmation_number_outlined),
                               ),
                             ),
@@ -345,12 +345,12 @@ class _CourseFormDialogState extends State<CourseFormDialog> {
                       ),
                       const SizedBox(height: 12),
 
-                      // Dosen & Ruangan
+                      // Lecturer & Room
                       TextFormField(
                         controller: _lecturerController,
                         decoration: const InputDecoration(
-                          labelText: 'Dosen Pengampu',
-                          hintText: 'Nama Dosen, Gelar',
+                          labelText: 'Lecturer Name',
+                          hintText: 'e.g., Dr. John Doe, M.Sc.',
                           prefixIcon: Icon(Icons.person_outline),
                         ),
                       ),
@@ -359,21 +359,21 @@ class _CourseFormDialogState extends State<CourseFormDialog> {
                       TextFormField(
                         controller: _roomController,
                         decoration: const InputDecoration(
-                          labelText: 'Ruangan Kelas',
-                          hintText: 'Lab Terpadu 3 / R. 402',
+                          labelText: 'Classroom / Room',
+                          hintText: 'e.g., Room 402 / Central Lab',
                           prefixIcon: Icon(Icons.meeting_room_outlined),
                         ),
                       ),
                       const SizedBox(height: 16),
 
-                      // Pilih Hari
+                      // Day of Week
                       const Text(
-                        'Hari Kuliah',
+                        'Day of Week',
                         style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
                       ),
                       const SizedBox(height: 6),
                       DropdownButtonFormField<int>(
-                        value: _selectedDay,
+                        initialValue: _selectedDay,
                         isExpanded: true,
                         decoration: const InputDecoration(
                           prefixIcon: Icon(Icons.calendar_today_outlined),
@@ -391,9 +391,9 @@ class _CourseFormDialogState extends State<CourseFormDialog> {
                       ),
                       const SizedBox(height: 16),
 
-                      // Jam Mulai - Jam Selesai
+                      // Class Time: Start - End
                       const Text(
-                        'Waktu Kuliah',
+                        'Class Time',
                         style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
                       ),
                       const SizedBox(height: 6),
@@ -407,11 +407,11 @@ class _CourseFormDialogState extends State<CourseFormDialog> {
                               ),
                               onPressed: () => _pickTime(true),
                               icon: const Icon(Icons.access_time),
-                              label: Text('Mulai: ${_formatTimeOfDay(_startTime)}'),
+                              label: Text('Start: ${_formatTimeOfDay(_startTime)}'),
                             ),
                           ),
                           const SizedBox(width: 8),
-                          const Text('s/d'),
+                          const Text('to'),
                           const SizedBox(width: 8),
                           Expanded(
                             child: OutlinedButton.icon(
@@ -421,16 +421,16 @@ class _CourseFormDialogState extends State<CourseFormDialog> {
                               ),
                               onPressed: () => _pickTime(false),
                               icon: const Icon(Icons.access_time_filled),
-                              label: Text('Selesai: ${_formatTimeOfDay(_endTime)}'),
+                              label: Text('End: ${_formatTimeOfDay(_endTime)}'),
                             ),
                           ),
                         ],
                       ),
                       const SizedBox(height: 16),
 
-                      // Pilihan Warna Label
+                      // Color Label Tag
                       const Text(
-                        'Warna Label Kartu',
+                        'Card Color Tag',
                         style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
                       ),
                       const SizedBox(height: 8),
@@ -468,7 +468,7 @@ class _CourseFormDialogState extends State<CourseFormDialog> {
                   height: 48,
                   child: FilledButton(
                     onPressed: _submitForm,
-                    child: Text(isEdit ? 'Simpan Perubahan' : 'Tambahkan Mata Kuliah'),
+                    child: Text(isEdit ? 'Save Changes' : 'Add Course'),
                   ),
                 ),
               ],
