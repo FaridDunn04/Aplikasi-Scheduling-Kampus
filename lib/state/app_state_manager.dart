@@ -36,6 +36,7 @@ class AppStateManager extends ChangeNotifier {
     await _db.ensureDefaultData();
     await refresh();
     await AlarmNotificationService.instance.rescheduleAll(_tasks);
+    await AlarmNotificationService.instance.rescheduleAllCourses(_courses);
     // 2. Tambahkan timer pengecekan otomatis tiap 1 menit:
 
     _autoCompleteTimer?.cancel();
@@ -119,10 +120,12 @@ class AppStateManager extends ChangeNotifier {
     } else {
       await _db.insertCourse(course);
     }
+    await AlarmNotificationService.instance.scheduleNotificationsForCourse(course);
     await refresh();
   }
 
   Future<void> deleteCourse(String id) async {
+    AlarmNotificationService.instance.cancelNotificationsForCourse(id);
     await _db.deleteCourse(id);
     await refresh();
   }
@@ -325,6 +328,7 @@ class AppStateManager extends ChangeNotifier {
           updatedAt: nowIso,
         );
         await _db.insertCourse(newCourse);
+        await AlarmNotificationService.instance.scheduleNotificationsForCourse(newCourse);
         coursesAdded++;
         if (c.courseCode != null) {
           courseCodeToIdMap[c.courseCode!.toUpperCase()] = newId;
@@ -393,6 +397,12 @@ class AppStateManager extends ChangeNotifier {
   }
 
   Future<void> resetAllData() async {
+    for (final c in _courses) {
+      AlarmNotificationService.instance.cancelNotificationsForCourse(c.id);
+    }
+    for (final t in _tasks) {
+      AlarmNotificationService.instance.cancelAlarmForTask(t.id);
+    }
     await _db.clearAllData();
     await refresh();
   }

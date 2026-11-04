@@ -27,7 +27,6 @@ class ShareModalDialog extends StatefulWidget {
 class _ShareModalDialogState extends State<ShareModalDialog> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   late String _jsonPayloadString;
-  late String _uniqueCode;
   late String _deepLink;
 
   @override
@@ -43,9 +42,6 @@ class _ShareModalDialogState extends State<ShareModalDialog> with SingleTickerPr
 
     if (widget.singleTaskToShare != null) {
       final t = widget.singleTaskToShare!;
-      final codeHash = (t.title.hashCode.abs() % 9000 + 1000).toString();
-      _uniqueCode = 'TSK-$codeHash';
-
       payload = SharePayload(
         schemaVersion: '1.0',
         shareType: 'SINGLE_TASK',
@@ -79,9 +75,6 @@ class _ShareModalDialogState extends State<ShareModalDialog> with SingleTickerPr
       );
     } else {
       final list = widget.coursesToShare ?? [];
-      final codeHash = (list.length.hashCode.abs() % 9000 + 1000).toString();
-      _uniqueCode = 'KRS-$codeHash';
-
       payload = SharePayload(
         schemaVersion: '1.0',
         shareType: 'COLLECTIVE_SCHEDULE',
@@ -118,6 +111,30 @@ class _ShareModalDialogState extends State<ShareModalDialog> with SingleTickerPr
     );
   }
 
+  void _shareViaSocial() {
+    final isTask = widget.singleTaskToShare != null;
+    String message;
+    String subject;
+
+    if (isTask) {
+      final t = widget.singleTaskToShare!;
+      final courseName = widget.relatedCourse?.courseName;
+      subject = 'UniSched Assignment: ${t.title}';
+      message = '📌 UniSched Task Reminder\n'
+          'Task: "${t.title}"\n'
+          '${courseName != null ? 'Course: $courseName\n' : ''}'
+          '\nCopy and import this link into your UniSched app:\n$_deepLink';
+    } else {
+      final count = widget.coursesToShare?.length ?? 0;
+      subject = 'UniSched Class Schedule';
+      message = '🗓️ UniSched Class Schedule ($count courses)\n'
+          'I am sharing my semester class schedule with you.\n'
+          '\nCopy and import this link into your UniSched app:\n$_deepLink';
+    }
+
+    Share.share(message, subject: subject);
+  }
+
   @override
   Widget build(BuildContext context) {
     final isTask = widget.singleTaskToShare != null;
@@ -126,7 +143,7 @@ class _ShareModalDialogState extends State<ShareModalDialog> with SingleTickerPr
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 440, maxHeight: 600),
+        constraints: const BoxConstraints(maxWidth: 440, maxHeight: 580),
         child: Padding(
           padding: const EdgeInsets.all(20.0),
           child: Column(
@@ -153,12 +170,12 @@ class _ShareModalDialogState extends State<ShareModalDialog> with SingleTickerPr
               ),
               const SizedBox(height: 10),
 
-              // Tab: QR Code (Offline) vs Link/Kode (Online)
+              // Tab: QR Code (Offline) vs Share Link (URL)
               TabBar(
                 controller: _tabController,
                 tabs: const [
                   Tab(icon: Icon(Icons.qr_code, size: 20), text: 'QR Code (Offline)'),
-                  Tab(icon: Icon(Icons.link, size: 20), text: 'Link & Unique Code'),
+                  Tab(icon: Icon(Icons.link, size: 20), text: 'Share Link (URL)'),
                 ],
               ),
               const SizedBox(height: 16),
@@ -179,7 +196,7 @@ class _ShareModalDialogState extends State<ShareModalDialog> with SingleTickerPr
                           ),
                           const SizedBox(height: 16),
                           QrImageView(
-                            data: _deepLink, // QR Code contains the import link
+                            data: _deepLink,
                             version: QrVersions.auto,
                             size: 220.0,
                             backgroundColor: Colors.white,
@@ -195,93 +212,66 @@ class _ShareModalDialogState extends State<ShareModalDialog> with SingleTickerPr
                       ),
                     ),
 
-                    // Tab 2: Link & Unique Code
+                    // Tab 2: Share Link (URL)
                     SingleChildScrollView(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text(
-                            'Use the Unique Code or link to share via WhatsApp / Social Media:',
+                            'Share this direct link via WhatsApp or social media. Peers can copy it and import it into UniSched:',
                             style: TextStyle(fontSize: 13, color: Colors.grey),
                           ),
                           const SizedBox(height: 16),
 
-                          // Unique Code Card
-                          Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.primaryContainer.withAlpha(60),
-                              borderRadius: BorderRadius.circular(14),
-                              border: Border.all(color: Theme.of(context).primaryColor.withAlpha(80)),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text('UNIQUE CODE', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey)),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      _uniqueCode,
-                                      style: TextStyle(
-                                        fontSize: 22,
-                                        fontWeight: FontWeight.bold,
-                                        letterSpacing: 2,
-                                        color: Theme.of(context).primaryColor,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                IconButton.filledTonal(
-                                  icon: const Icon(Icons.copy),
-                                  tooltip: 'Copy Code',
-                                  onPressed: () => _copyToClipboard(_uniqueCode, 'Unique code'),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-
-                          // Deep Link
-                          const Text('Deep Link:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                          // Deep Link Box
+                          const Text('Import Link (Deep Link):', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                           const SizedBox(height: 6),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                             decoration: BoxDecoration(
                               color: Colors.grey.withAlpha(20),
-                              borderRadius: BorderRadius.circular(10),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.grey.withAlpha(40)),
                             ),
                             child: Row(
                               children: [
                                 Expanded(
                                   child: Text(
                                     _deepLink,
-                                    style: const TextStyle(fontSize: 13, color: Colors.blue),
+                                    style: const TextStyle(fontSize: 12.5, color: Colors.blue),
+                                    maxLines: 2,
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
                                 IconButton(
-                                  icon: const Icon(Icons.copy, size: 18),
-                                  onPressed: () => _copyToClipboard(_deepLink, 'Deep Link'),
+                                  icon: const Icon(Icons.copy, size: 20),
+                                  tooltip: 'Copy Link',
+                                  onPressed: () => _copyToClipboard(_deepLink, 'Import Link'),
                                 ),
                               ],
                             ),
                           ),
                           const SizedBox(height: 24),
 
-                          // WhatsApp Share Button
+                          // WhatsApp / Direct Share Button
                           SizedBox(
                             width: double.infinity,
                             height: 48,
                             child: FilledButton.icon(
                               style: FilledButton.styleFrom(backgroundColor: const Color(0xFF25D366)),
-                              onPressed: () {
-                                final pesan = 'Hello! I am sharing my UniSched class schedule.\nClick this link to import it into your app:\n$_deepLink';
-                                Share.share(pesan, subject: 'UniSched Class Schedule');
-                              },
+                              onPressed: _shareViaSocial,
                               icon: const Icon(Icons.share, color: Colors.white),
-                              label: const Text('Share to WhatsApp'),
+                              label: const Text('Share to WhatsApp / Apps'),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          SizedBox(
+                            width: double.infinity,
+                            height: 44,
+                            child: OutlinedButton.icon(
+                              onPressed: () => _copyToClipboard(_deepLink, 'Import Link'),
+                              icon: const Icon(Icons.copy_rounded, size: 18),
+                              label: const Text('Copy Full Link'),
                             ),
                           ),
                         ],

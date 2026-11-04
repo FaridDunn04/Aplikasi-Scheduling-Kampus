@@ -72,7 +72,7 @@ class SettingsDialog extends StatelessWidget {
                 contentPadding: EdgeInsets.zero,
                 leading: const Icon(Icons.music_note_outlined, color: Colors.blue),
                 title: const Text('Alarm Sounds Catalog'),
-                subtitle: const Text('Manage default tones, custom imports & cloud downloads'),
+                subtitle: const Text('Manage default tones & custom device audio imports'),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () {
                   showDialog(

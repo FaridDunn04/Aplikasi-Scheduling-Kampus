@@ -46,7 +46,7 @@ class _ImportModalDialogState extends State<ImportModalDialog> {
   Future<void> _processImport() async {
     final rawText = _inputController.text.trim();
     if (rawText.isEmpty) {
-      setState(() => _errorMessage = 'Please enter a Unique Code or JSON Data');
+      setState(() => _errorMessage = 'Please enter a valid link or JSON data');
       return;
     }
 
@@ -56,67 +56,7 @@ class _ImportModalDialogState extends State<ImportModalDialog> {
     });
 
     try {
-      SharePayload? payload = ShareDataCompressor.decompressPayload(rawText);
-
-      if (payload == null) {
-        final upperCode = rawText.toUpperCase();
-        if (upperCode.startsWith('TSK')) {
-          payload = SharePayload(
-            shareType: 'SINGLE_TASK',
-            generatedAt: DateTime.now().toIso8601String(),
-            courses: [
-              ShareCourseItem(
-                courseName: 'Web Programming',
-                courseCode: 'IF204',
-                sks: 3,
-                dayOfWeek: 1,
-                startTime: '08:00',
-                endTime: '10:30',
-              ),
-            ],
-            tasks: [
-              ShareTaskItem(
-                title: 'Web Project Task ($upperCode)',
-                description: 'Imported from peer code $upperCode',
-                courseCodeRef: 'IF204',
-                courseNameRef: 'Web Programming',
-                deadlineDatetime: DateTime.now().add(const Duration(days: 2)).toIso8601String(),
-                reminderDatetime: DateTime.now().add(const Duration(days: 1)).toIso8601String(),
-              ),
-            ],
-          );
-        } else if (upperCode.startsWith('KRS')) {
-          payload = SharePayload(
-            shareType: 'COLLECTIVE_SCHEDULE',
-            generatedAt: DateTime.now().toIso8601String(),
-            courses: [
-              ShareCourseItem(
-                courseName: 'Data Structures & Algorithms',
-                courseCode: 'IF102',
-                sks: 3,
-                lecturerName: 'Dr. John Doe, M.Sc.',
-                room: 'Computer Lab 1',
-                dayOfWeek: 1,
-                startTime: '10:45',
-                endTime: '13:15',
-                colorHex: '#10B981',
-              ),
-              ShareCourseItem(
-                courseName: 'Database Systems',
-                courseCode: 'IF203',
-                sks: 3,
-                lecturerName: 'Jane Smith, Ph.D.',
-                room: 'Room 304',
-                dayOfWeek: 2,
-                startTime: '08:00',
-                endTime: '10:30',
-                colorHex: '#8B5CF6',
-              ),
-            ],
-            tasks: [],
-          );
-        }
-      }
+      final SharePayload? payload = ShareDataCompressor.decompressPayload(rawText);
 
       setState(() => _isLoading = false);
 
@@ -127,7 +67,7 @@ class _ImportModalDialogState extends State<ImportModalDialog> {
         }
       } else {
         setState(() {
-          _errorMessage = 'Invalid format. Make sure link, JSON, or Code format is correct.';
+          _errorMessage = 'Invalid format. Please make sure the unisched:// link or JSON is valid.';
         });
       }
     } catch (e) {
@@ -192,7 +132,7 @@ class _ImportModalDialogState extends State<ImportModalDialog> {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 10),
                     child: Text(
-                      'OR PASTE LINK / CODE',
+                      'OR PASTE SHARE LINK / JSON',
                       style: TextStyle(fontSize: 11, color: Colors.grey.shade600, fontWeight: FontWeight.bold),
                     ),
                   ),
@@ -202,7 +142,7 @@ class _ImportModalDialogState extends State<ImportModalDialog> {
               const SizedBox(height: 10),
 
               const Text(
-                'Paste "unisched://" link, JSON data, or Unique Code:',
+                'Paste "unisched://" link or raw JSON data:',
                 style: TextStyle(fontSize: 12, color: Colors.grey),
               ),
               const SizedBox(height: 10),
@@ -211,7 +151,7 @@ class _ImportModalDialogState extends State<ImportModalDialog> {
                 controller: _inputController,
                 maxLines: 3,
                 decoration: InputDecoration(
-                  hintText: 'Enter Unique Code, unisched:// link, or paste JSON...',
+                  hintText: 'Paste unisched:// link or JSON data here...',
                   errorText: _errorMessage,
                 ),
               ),

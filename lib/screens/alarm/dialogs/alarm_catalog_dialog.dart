@@ -14,39 +14,13 @@ class AlarmCatalogDialog extends StatefulWidget {
   State<AlarmCatalogDialog> createState() => _AlarmCatalogDialogState();
 }
 
-class _AlarmCatalogDialogState extends State<AlarmCatalogDialog> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+class _AlarmCatalogDialogState extends State<AlarmCatalogDialog> {
   final AudioPlayer _audioPlayer = AudioPlayer();
   String? _currentlyPlayingId;
-
-  // Mock online catalog
-  final List<Map<String, String>> _cloudCatalog = [
-    {
-      'title': 'Modern Campus Bell',
-      'url': 'https://unisched.app/sounds/campus_bell.mp3',
-      'duration': '0:12',
-    },
-    {
-      'title': 'Radar Sonar High Alert',
-      'url': 'https://unisched.app/sounds/radar.mp3',
-      'duration': '0:08',
-    },
-    {
-      'title': 'Harmonic Acoustic Wakeup',
-      'url': 'https://unisched.app/sounds/harmonic.mp3',
-      'duration': '0:15',
-    },
-    {
-      'title': 'Digital Future Synth',
-      'url': 'https://unisched.app/sounds/synth.mp3',
-      'duration': '0:10',
-    },
-  ];
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
     _audioPlayer.onPlayerComplete.listen((_) {
       if (mounted) {
         setState(() => _currentlyPlayingId = null);
@@ -56,7 +30,6 @@ class _AlarmCatalogDialogState extends State<AlarmCatalogDialog> with SingleTick
 
   @override
   void dispose() {
-    _tabController.dispose();
     _audioPlayer.stop();
     _audioPlayer.dispose();
     super.dispose();
@@ -73,7 +46,7 @@ class _AlarmCatalogDialogState extends State<AlarmCatalogDialog> with SingleTick
       await _audioPlayer.stop();
       await _audioPlayer.setVolume(1.0);
 
-      if (sound.sourceType == 'LOCAL_IMPORT' || sound.sourceType == 'CLOUD_DOWNLOAD') {
+      if (sound.sourceType == 'LOCAL_IMPORT') {
         final file = File(sound.localFilePath);
         if (await file.exists()) {
           await _audioPlayer.play(DeviceFileSource(sound.localFilePath));
@@ -98,41 +71,6 @@ class _AlarmCatalogDialogState extends State<AlarmCatalogDialog> with SingleTick
       }
     } catch (e) {
       debugPrint('[AlarmCatalog] Error previewing sound: $e');
-    }
-  }
-
-  Future<void> _downloadCloudSound(Map<String, String> item) async {
-    final nowIso = DateTime.now().toIso8601String();
-    final appDir = await getApplicationDocumentsDirectory();
-    final cloudSoundsDir = Directory('${appDir.path}/cloud_sounds');
-    if (!await cloudSoundsDir.exists()) {
-      await cloudSoundsDir.create(recursive: true);
-    }
-
-    final targetPath = '${cloudSoundsDir.path}/${item['title']!.toLowerCase().replaceAll(' ', '_')}.mp3';
-    final targetFile = File(targetPath);
-    if (!await targetFile.exists()) {
-      await targetFile.create(recursive: true);
-    }
-
-    final newSound = AlarmSound(
-      id: const Uuid().v4(),
-      title: item['title']!,
-      sourceType: 'CLOUD_DOWNLOAD',
-      localFilePath: targetPath,
-      remoteUrl: item['url'],
-      createdAt: nowIso,
-    );
-
-    await AppStateManager.instance.addAlarmSound(newSound);
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Successfully downloaded "${item['title']}" to local storage!'),
-          backgroundColor: Colors.green,
-        ),
-      );
     }
   }
 
@@ -257,7 +195,7 @@ class _AlarmCatalogDialogState extends State<AlarmCatalogDialog> with SingleTick
                       Icon(Icons.library_music_outlined, color: Colors.blue),
                       SizedBox(width: 8),
                       Text(
-                        'Alarm Sounds Catalog',
+                        'Alarm Sounds',
                         style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                     ],
@@ -268,137 +206,107 @@ class _AlarmCatalogDialogState extends State<AlarmCatalogDialog> with SingleTick
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
-
-              TabBar(
-                controller: _tabController,
-                tabs: const [
-                  Tab(text: 'Saved (Local)'),
-                  Tab(text: 'Cloud Catalog (Online)'),
-                ],
+              const SizedBox(height: 6),
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Choose default ringtones or import custom audio from your device.',
+                  style: TextStyle(fontSize: 12.5, color: Colors.grey),
+                ),
               ),
-              const SizedBox(height: 12),
+              const Divider(height: 20),
 
               Expanded(
-                child: TabBarView(
-                  controller: _tabController,
-                  children: [
-                    // Tab 1: Saved on Device
-                    ListenableBuilder(
-                      listenable: AppStateManager.instance,
-                      builder: (context, _) {
-                        final sounds = AppStateManager.instance.alarmSounds;
+                child: ListenableBuilder(
+                  listenable: AppStateManager.instance,
+                  builder: (context, _) {
+                    final sounds = AppStateManager.instance.alarmSounds;
 
-                        return Column(
-                          children: [
-                            Expanded(
-                              child: ListView.separated(
-                                itemCount: sounds.length,
-                                separatorBuilder: (_, _) => const Divider(height: 1),
-                                itemBuilder: (context, index) {
-                                  final s = sounds[index];
-                                  final isDefault = s.sourceType == 'DEFAULT';
-                                  final isPlaying = _currentlyPlayingId == s.id;
-
-                                  return ListTile(
-                                    contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-                                    leading: CircleAvatar(
-                                      backgroundColor: isPlaying
-                                          ? Colors.green.withAlpha(40)
-                                          : (isDefault ? Colors.blue.withAlpha(30) : Colors.purple.withAlpha(30)),
-                                      child: Icon(
-                                        isPlaying
-                                            ? Icons.volume_up_rounded
-                                            : (isDefault ? Icons.music_note : Icons.audio_file),
-                                        color: isPlaying
-                                            ? Colors.green
-                                            : (isDefault ? Colors.blue : Colors.purple),
-                                        size: 20,
-                                      ),
-                                    ),
-                                    title: Text(s.title, style: const TextStyle(fontWeight: FontWeight.w600)),
-                                    subtitle: Text(
-                                      isPlaying
-                                          ? 'Playing preview...'
-                                          : (isDefault ? 'Default Tone' : 'Local Storage Audio'),
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        color: isPlaying ? Colors.green : Colors.grey,
-                                        fontWeight: isPlaying ? FontWeight.bold : FontWeight.normal,
-                                      ),
-                                    ),
-                                    trailing: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        IconButton(
-                                          icon: Icon(
-                                            isPlaying ? Icons.stop_circle_rounded : Icons.play_circle_fill_rounded,
-                                            color: isPlaying ? Colors.redAccent : const Color(0xFF2563EB),
-                                            size: 28,
-                                          ),
-                                          tooltip: isPlaying ? 'Stop' : 'Play Preview',
-                                          onPressed: () => _togglePreviewSound(s),
-                                        ),
-                                        if (isDefault)
-                                          const Chip(label: Text('Default', style: TextStyle(fontSize: 10)))
-                                        else
-                                          IconButton(
-                                            icon: const Icon(Icons.delete_outline, size: 20, color: Colors.red),
-                                            tooltip: 'Delete Sound',
-                                            onPressed: () async {
-                                              if (_currentlyPlayingId == s.id) {
-                                                await _audioPlayer.stop();
-                                                setState(() => _currentlyPlayingId = null);
-                                              }
-                                              try {
-                                                final f = File(s.localFilePath);
-                                                if (await f.exists()) await f.delete();
-                                              } catch (_) {}
-                                              await AppStateManager.instance.deleteAlarmSound(s.id);
-                                            },
-                                          ),
-                                      ],
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            SizedBox(
-                              width: double.infinity,
-                              child: OutlinedButton.icon(
-                                onPressed: _importLocalSoundManual,
-                                icon: const Icon(Icons.file_upload_outlined),
-                                label: const Text('Import Audio File from Device (.mp3 / .wav)'),
-                              ),
-                            ),
-                          ],
-                        );
-                      },
-                    ),
-
-                    // Tab 2: Cloud Catalog
-                    ListView.separated(
-                      itemCount: _cloudCatalog.length,
+                    return ListView.separated(
+                      itemCount: sounds.length,
                       separatorBuilder: (_, _) => const Divider(height: 1),
                       itemBuilder: (context, index) {
-                        final item = _cloudCatalog[index];
+                        final s = sounds[index];
+                        final isDefault = s.sourceType == 'DEFAULT';
+                        final isPlaying = _currentlyPlayingId == s.id;
+
                         return ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          leading: const CircleAvatar(
-                            backgroundColor: Colors.orangeAccent,
-                            child: Icon(Icons.cloud_download_outlined, color: Colors.white, size: 20),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                          leading: CircleAvatar(
+                            backgroundColor: isPlaying
+                                ? Colors.green.withAlpha(40)
+                                : (isDefault ? Colors.blue.withAlpha(30) : Colors.purple.withAlpha(30)),
+                            child: Icon(
+                              isPlaying
+                                  ? Icons.volume_up_rounded
+                                  : (isDefault ? Icons.music_note : Icons.audio_file),
+                              color: isPlaying
+                                  ? Colors.green
+                                  : (isDefault ? Colors.blue : Colors.purple),
+                              size: 20,
+                            ),
                           ),
-                          title: Text(item['title']!, style: const TextStyle(fontWeight: FontWeight.w600)),
-                          subtitle: Text('Duration: ${item['duration']} • Cloud Catalog'),
-                          trailing: FilledButton.tonal(
-                            onPressed: () => _downloadCloudSound(item),
-                            child: const Text('Download'),
+                          title: Text(s.title, style: const TextStyle(fontWeight: FontWeight.w600)),
+                          subtitle: Text(
+                            isPlaying
+                                ? 'Playing preview...'
+                                : (isDefault ? 'Default Ringtone' : 'Custom Imported Audio'),
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: isPlaying ? Colors.green : Colors.grey,
+                              fontWeight: isPlaying ? FontWeight.bold : FontWeight.normal,
+                            ),
+                          ),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: Icon(
+                                  isPlaying ? Icons.stop_circle_rounded : Icons.play_circle_fill_rounded,
+                                  color: isPlaying ? Colors.redAccent : const Color(0xFF2563EB),
+                                  size: 28,
+                                ),
+                                tooltip: isPlaying ? 'Stop' : 'Play Preview',
+                                onPressed: () => _togglePreviewSound(s),
+                              ),
+                              if (isDefault)
+                                const Chip(label: Text('Default', style: TextStyle(fontSize: 10)))
+                              else
+                                IconButton(
+                                  icon: const Icon(Icons.delete_outline, size: 20, color: Colors.red),
+                                  tooltip: 'Delete Sound',
+                                  onPressed: () async {
+                                    if (_currentlyPlayingId == s.id) {
+                                      await _audioPlayer.stop();
+                                      setState(() => _currentlyPlayingId = null);
+                                    }
+                                    try {
+                                      final f = File(s.localFilePath);
+                                      if (await f.exists()) await f.delete();
+                                    } catch (_) {}
+                                    await AppStateManager.instance.deleteAlarmSound(s.id);
+                                  },
+                                ),
+                            ],
                           ),
                         );
                       },
-                    ),
-                  ],
+                    );
+                  },
+                ),
+              ),
+
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                height: 46,
+                child: FilledButton.tonalIcon(
+                  onPressed: _importLocalSoundManual,
+                  icon: const Icon(Icons.file_upload_outlined),
+                  label: const Text(
+                    'Import Audio from Device (.mp3 / .wav)',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                 ),
               ),
             ],

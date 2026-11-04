@@ -7,6 +7,7 @@ import 'package:timezone/timezone.dart' as tz;
 import 'package:audioplayers/audioplayers.dart';
 
 import '../data/models/task_model.dart';
+import '../data/models/course_model.dart';
 import '../core/utils/date_time_utils.dart';
 import '../screens/alarm/dialogs/full_screen_alarm_dialog.dart';
 import '../state/app_state_manager.dart';
@@ -26,13 +27,17 @@ class AlarmNotificationService {
   AlarmNotificationService._init();
 
   // Channel ID & Names for Android
-  static const String channelIdAlarm = 'unisched_alarm_channel';
+  static const String channelIdAlarm = 'unisched_alarm_channel_v2';
   static const String channelNameAlarm = 'Assignment Reminder Alarm';
   static const String channelDescAlarm = 'Plays alarm ringtone when course assignment reminder time arrives.';
 
   static const String channelIdCountdown = 'unisched_countdown_channel';
   static const String channelNameCountdown = 'Assignment Deadline Countdown';
   static const String channelDescCountdown = 'Periodic countdown notifications for the final 5 minutes before deadline.';
+
+  static const String channelIdCourse = 'unisched_course_channel';
+  static const String channelNameCourse = 'Class Schedule Reminder';
+  static const String channelDescCourse = 'Reminders before class starts (10, 5, and 2 minutes before).';
 
   Future<void> init(GlobalKey<NavigatorState> navKey) async {
     navigatorKey = navKey;
@@ -72,7 +77,12 @@ class AlarmNotificationService {
         .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
 
     if (androidPlugin != null) {
-      // Channel 1: Alarm Pengingat (Prioritas Max, Bersuara Keras & Bergetar)
+      // Hapus channel versi lama agar channel baru dengan nada dering kustom aktif
+      try {
+        await androidPlugin.deleteNotificationChannel(channelId: 'unisched_alarm_channel');
+      } catch (_) {}
+
+      // Channel 1: Alarm Pengingat (Prioritas Max, Bersuara Keras dari res/raw, Mengikuti Silent Mode HP)
       await androidPlugin.createNotificationChannel(
         const AndroidNotificationChannel(
           channelIdAlarm,
@@ -80,7 +90,10 @@ class AlarmNotificationService {
           description: channelDescAlarm,
           importance: Importance.max,
           playSound: true,
+          sound: RawResourceAndroidNotificationSound('alarm_ringtone'),
           enableVibration: true,
+          audioAttributesUsage: AudioAttributesUsage.notification,
+          bypassDnd: false,
         ),
       );
 
@@ -90,6 +103,18 @@ class AlarmNotificationService {
           channelIdCountdown,
           channelNameCountdown,
           description: channelDescCountdown,
+          importance: Importance.high,
+          playSound: true,
+          enableVibration: true,
+        ),
+      );
+
+      // Channel 3: Pengingat Jadwal Kuliah (10, 5, dan 2 menit sebelum kelas dimulai)
+      await androidPlugin.createNotificationChannel(
+        const AndroidNotificationChannel(
+          channelIdCourse,
+          channelNameCourse,
+          description: channelDescCourse,
           importance: Importance.high,
           playSound: true,
           enableVibration: true,
@@ -114,15 +139,17 @@ class AlarmNotificationService {
     debugPrint('[AlarmService] Notification tapped, payload: $payload');
     if (payload != null && navigatorKey?.currentContext != null) {
       try {
-        final task = AppStateManager.instance.tasks.firstWhere((t) => t.id == payload);
-        final sound = AppStateManager.instance.alarmSounds
-            .where((s) => s.id == task.alarmSoundId)
-            .firstOrNull;
-        triggerAlarm(
-          navigatorKey!.currentContext!,
-          task,
-          soundTitle: sound?.title ?? 'Soft Chime',
-        );
+        final task = AppStateManager.instance.tasks.where((t) => t.id == payload).firstOrNull;
+        if (task != null) {
+          final sound = AppStateManager.instance.alarmSounds
+              .where((s) => s.id == task.alarmSoundId)
+              .firstOrNull;
+          triggerAlarm(
+            navigatorKey!.currentContext!,
+            task,
+            soundTitle: sound?.title ?? 'Soft Chime',
+          );
+        }
       } catch (_) {}
     }
   }
@@ -189,7 +216,7 @@ class AlarmNotificationService {
     }
   }
 
-  // ================= ALARM SCHEDULING & DEADLINE COUNTDOWN =================
+  // ================= TASK ALARM SCHEDULING & DEADLINE COUNTDOWN =================
   Future<void> scheduleAlarmForTask(Task task) async {
     // If task is completed, cancel all notifications & alarms
     if (task.isCompleted) {
@@ -285,6 +312,110 @@ class AlarmNotificationService {
     }
   }
 
+  // ================= COURSE CLASS REMINDER NOTIFICATIONS =================
+  tz.TZDateTime _nextInstanceOfDayAndTime(int dayOfWeek, int hour, int minute, int minusMinutes) {
+    final now = tz.TZDateTime.now(tz.local);
+
+    tz.TZDateTime scheduledDate = tz.TZDateTime(
+      tz.local,
+      now.year,
+      now.month,
+      now.day,
+      hour,
+      minute,
+    ).subtract(Duration(minutes: minusMinutes));
+
+    while (scheduledDate.weekday != dayOfWeek) {
+      scheduledDate = scheduledDate.add(const Duration(days: 1));
+    }
+
+    if (scheduledDate.isBefore(now)) {
+      scheduledDate = scheduledDate.add(const Duration(days: 7));
+    }
+
+    return scheduledDate;
+  }
+
+  /// Schedules 3 reminders before class starts: 10 minutes, 5 minutes, and 2 minutes before
+  Future<void> scheduleNotificationsForCourse(Course course) async {
+    cancelNotificationsForCourse(course.id);
+
+    try {
+      final parts = course.startTime.split(':');
+      if (parts.length < 2) return;
+      final hour = int.parse(parts[0]);
+      final minute = int.parse(parts[1]);
+
+      final int courseBaseId = (course.id.hashCode.abs() % 100000) + 500000;
+      final roomStr = (course.room != null && course.room!.trim().isNotEmpty)
+          ? ' di ${course.room!.trim()}'
+          : '';
+
+      final reminders = [
+        {
+          'offset': 10,
+          'suffix': 1,
+          'title': '🔔 Kelas dalam 10 Menit: ${course.courseName}',
+          'body': 'Kuliah dimulai pukul ${course.startTime}$roomStr. Segera persiapkan materi kuliah!',
+        },
+        {
+          'offset': 5,
+          'suffix': 2,
+          'title': '⚠️ Kelas dalam 5 Menit: ${course.courseName}',
+          'body': 'Kuliah dimulai pukul ${course.startTime}$roomStr. Segera masuk ke ruang kelas!',
+        },
+        {
+          'offset': 2,
+          'suffix': 3,
+          'title': '🚨 Kelas dalam 2 Menit: ${course.courseName}',
+          'body': 'Kuliah ${course.courseName} dimulai pukul ${course.startTime}$roomStr! Harap segera hadir.',
+        },
+      ];
+
+      for (final r in reminders) {
+        final offset = r['offset'] as int;
+        final suffix = r['suffix'] as int;
+        final title = r['title'] as String;
+        final body = r['body'] as String;
+
+        final scheduledDate = _nextInstanceOfDayAndTime(course.dayOfWeek, hour, minute, offset);
+        final notifId = courseBaseId * 10 + suffix;
+
+        await _scheduleZonedNotification(
+          id: notifId,
+          title: title,
+          body: body,
+          scheduledDate: scheduledDate,
+          channelId: channelIdCourse,
+          channelName: channelNameCourse,
+          channelDesc: channelDescCourse,
+          importance: Importance.high,
+          priority: Priority.high,
+          payload: course.id,
+          isAlarm: false,
+          matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
+        );
+        debugPrint('[AlarmService] Scheduled weekly course reminder ($offset min before) at $scheduledDate for "${course.courseName}"');
+      }
+    } catch (e) {
+      debugPrint('[AlarmService] Error scheduling course reminders: $e');
+    }
+  }
+
+  void cancelNotificationsForCourse(String courseId) {
+    final int courseBaseId = (courseId.hashCode.abs() % 100000) + 500000;
+    for (int i = 1; i <= 3; i++) {
+      _notificationsPlugin.cancel(id: courseBaseId * 10 + i);
+    }
+    debugPrint('[AlarmService] Cancelled class reminders for course: $courseId');
+  }
+
+  Future<void> rescheduleAllCourses(List<Course> courses) async {
+    for (final course in courses) {
+      await scheduleNotificationsForCourse(course);
+    }
+  }
+
   Future<void> _scheduleZonedNotification({
     required int id,
     required String title,
@@ -297,6 +428,7 @@ class AlarmNotificationService {
     required Priority priority,
     required String payload,
     required bool isAlarm,
+    DateTimeComponents? matchDateTimeComponents,
   }) async {
     final tzScheduledDate = tz.TZDateTime.from(scheduledDate, tz.local);
     if (tzScheduledDate.isBefore(tz.TZDateTime.now(tz.local))) return;
@@ -308,7 +440,9 @@ class AlarmNotificationService {
       importance: importance,
       priority: priority,
       playSound: true,
+      sound: isAlarm ? const RawResourceAndroidNotificationSound('alarm_ringtone') : null,
       enableVibration: true,
+      audioAttributesUsage: AudioAttributesUsage.notification,
       category: isAlarm ? AndroidNotificationCategory.alarm : AndroidNotificationCategory.reminder,
       fullScreenIntent: isAlarm,
     );
@@ -329,6 +463,7 @@ class AlarmNotificationService {
         scheduledDate: tzScheduledDate,
         notificationDetails: details,
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        matchDateTimeComponents: matchDateTimeComponents,
         payload: payload,
       );
     } catch (e) {
@@ -341,6 +476,7 @@ class AlarmNotificationService {
           scheduledDate: tzScheduledDate,
           notificationDetails: details,
           androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+          matchDateTimeComponents: matchDateTimeComponents,
           payload: payload,
         );
       } catch (fallbackError) {
