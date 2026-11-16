@@ -67,7 +67,7 @@ class _ImportModalDialogState extends State<ImportModalDialog> {
         }
       } else {
         setState(() {
-          _errorMessage = 'Invalid format. Please make sure the unisched:// link or JSON is valid.';
+          _errorMessage = 'Invalid format. Please make sure the daynix:// link or JSON is valid.';
         });
       }
     } catch (e) {
@@ -142,7 +142,7 @@ class _ImportModalDialogState extends State<ImportModalDialog> {
               const SizedBox(height: 10),
 
               const Text(
-                'Paste "unisched://" link or raw JSON data:',
+                'Paste "daynix://" link or raw JSON data:',
                 style: TextStyle(fontSize: 12, color: Colors.grey),
               ),
               const SizedBox(height: 10),
@@ -151,7 +151,7 @@ class _ImportModalDialogState extends State<ImportModalDialog> {
                 controller: _inputController,
                 maxLines: 3,
                 decoration: InputDecoration(
-                  hintText: 'Paste unisched:// link or JSON data here...',
+                  hintText: 'Paste daynix:// link or JSON data here...',
                   errorText: _errorMessage,
                 ),
               ),

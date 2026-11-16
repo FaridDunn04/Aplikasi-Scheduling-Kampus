@@ -104,12 +104,12 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               NavigationDestination(
                 icon: Icon(Icons.calendar_month_outlined),
                 selectedIcon: Icon(Icons.calendar_month_rounded),
-                label: 'Jadwal',
+                label: 'Schedule',
               ),
               NavigationDestination(
                 icon: Icon(Icons.check_box_outlined),
                 selectedIcon: Icon(Icons.check_box_rounded),
-                label: 'Tugas',
+                label: 'Tasks',
               ),
             ],
           ),

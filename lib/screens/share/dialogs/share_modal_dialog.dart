@@ -94,7 +94,7 @@ class _ShareModalDialogState extends State<ShareModalDialog> with SingleTickerPr
       );
     }
     final compressedData = ShareDataCompressor.compressPayload(payload);
-    _deepLink = 'unisched://import?data=$compressedData';
+    _deepLink = 'daynix://import?data=$compressedData';
     _jsonPayloadString = jsonEncode(payload.toJson());
   }
 
@@ -119,17 +119,17 @@ class _ShareModalDialogState extends State<ShareModalDialog> with SingleTickerPr
     if (isTask) {
       final t = widget.singleTaskToShare!;
       final courseName = widget.relatedCourse?.courseName;
-      subject = 'UniSched Assignment: ${t.title}';
-      message = '📌 UniSched Task Reminder\n'
+      subject = 'DayNix Assignment: ${t.title}';
+      message = '📌 DayNix Task Reminder\n'
           'Task: "${t.title}"\n'
           '${courseName != null ? 'Course: $courseName\n' : ''}'
-          '\nCopy and import this link into your UniSched app:\n$_deepLink';
+          '\nCopy and import this link into your DayNix app:\n$_deepLink';
     } else {
       final count = widget.coursesToShare?.length ?? 0;
-      subject = 'UniSched Class Schedule';
-      message = '🗓️ UniSched Class Schedule ($count courses)\n'
+      subject = 'DayNix Class Schedule';
+      message = '🗓️ DayNix Class Schedule ($count courses)\n'
           'I am sharing my semester class schedule with you.\n'
-          '\nCopy and import this link into your UniSched app:\n$_deepLink';
+          '\nCopy and import this link into your DayNix app:\n$_deepLink';
     }
 
     Share.share(message, subject: subject);
@@ -218,7 +218,7 @@ class _ShareModalDialogState extends State<ShareModalDialog> with SingleTickerPr
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text(
-                            'Share this direct link via WhatsApp or social media. Peers can copy it and import it into UniSched:',
+                            'Share this direct link via WhatsApp or social media. Peers can copy it and import it into DayNix:',
                             style: TextStyle(fontSize: 13, color: Colors.grey),
                           ),
                           const SizedBox(height: 16),

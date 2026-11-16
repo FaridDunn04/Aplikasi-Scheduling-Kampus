@@ -12,13 +12,13 @@ class ShareDataCompressor {
     return base64UrlEncode(compressedBytes);
   }
 
-  /// Membaca string (bisa berupa teks terkompresi, URL unisched://, atau JSON mentah)
+  /// Membaca string (bisa berupa teks terkompresi, URL daynix:// / unisched://, atau JSON mentah)
   static SharePayload? decompressPayload(String input) {
     try {
       String raw = input.trim();
 
-      // 1. Jika input berupa URL (misal: unisched://import?data=XYZ)
-      if (raw.startsWith('unisched://')) {
+      // 1. Jika input berupa URL (misal: daynix://import?data=XYZ atau unisched://import?data=XYZ)
+      if (raw.startsWith('daynix://') || raw.startsWith('unisched://')) {
         final uri = Uri.parse(raw);
         final dataParam = uri.queryParameters['data'];
         if (dataParam != null) {

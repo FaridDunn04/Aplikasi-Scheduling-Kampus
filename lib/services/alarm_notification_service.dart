@@ -27,16 +27,16 @@ class AlarmNotificationService {
   AlarmNotificationService._init();
 
   // Channel ID & Names for Android
-  static const String channelIdAlarm = 'unisched_alarm_channel_v2';
-  static const String channelNameAlarm = 'Assignment Reminder Alarm';
+  static const String channelIdAlarm = 'daynix_alarm_channel_v1';
+  static const String channelNameAlarm = 'DayNix Assignment Reminder Alarm';
   static const String channelDescAlarm = 'Plays alarm ringtone when course assignment reminder time arrives.';
 
-  static const String channelIdCountdown = 'unisched_countdown_channel';
-  static const String channelNameCountdown = 'Assignment Deadline Countdown';
+  static const String channelIdCountdown = 'daynix_countdown_channel_v1';
+  static const String channelNameCountdown = 'DayNix Assignment Deadline Countdown';
   static const String channelDescCountdown = 'Periodic countdown notifications for the final 5 minutes before deadline.';
 
-  static const String channelIdCourse = 'unisched_course_channel';
-  static const String channelNameCourse = 'Class Schedule Reminder';
+  static const String channelIdCourse = 'daynix_course_channel_v1';
+  static const String channelNameCourse = 'DayNix Class Schedule Reminder';
   static const String channelDescCourse = 'Reminders before class starts (10, 5, and 2 minutes before).';
 
   Future<void> init(GlobalKey<NavigatorState> navKey) async {
@@ -77,9 +77,12 @@ class AlarmNotificationService {
         .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
 
     if (androidPlugin != null) {
-      // Hapus channel versi lama agar channel baru dengan nada dering kustom aktif
+      // Hapus channel versi lama agar channel baru aktif bersih
       try {
         await androidPlugin.deleteNotificationChannel(channelId: 'unisched_alarm_channel');
+        await androidPlugin.deleteNotificationChannel(channelId: 'unisched_alarm_channel_v2');
+        await androidPlugin.deleteNotificationChannel(channelId: 'unisched_countdown_channel');
+        await androidPlugin.deleteNotificationChannel(channelId: 'unisched_course_channel');
       } catch (_) {}
 
       // Channel 1: Alarm Pengingat (Prioritas Max, Bersuara Keras dari res/raw, Mengikuti Silent Mode HP)

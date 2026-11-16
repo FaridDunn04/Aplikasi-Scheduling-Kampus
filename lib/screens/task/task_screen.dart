@@ -63,6 +63,147 @@ class _TaskScreenState extends State<TaskScreen> {
     showDialog(context: context, builder: (ctx) => const ImportModalDialog());
   }
 
+  void _openFilterModal() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 22),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Filter by Category',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF0F172A),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, size: 20),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              ...List.generate(_filters.length, (index) {
+                final isSelected = _selectedFilterIndex == index;
+                IconData icon;
+                String subtitle;
+                switch (index) {
+                  case 0:
+                    icon = Icons.all_inbox_rounded;
+                    subtitle = 'All ongoing tasks';
+                    break;
+                  case 1:
+                    icon = Icons.biotech_rounded;
+                    subtitle = 'Practical and laboratory assignments';
+                    break;
+                  case 2:
+                    icon = Icons.menu_book_rounded;
+                    subtitle = 'Lecture and theory assignments';
+                    break;
+                  case 3:
+                  default:
+                    icon = Icons.check_circle_rounded;
+                    subtitle = 'Completed and submitted tasks';
+                    break;
+                }
+
+                return ListTile(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  tileColor:
+                      isSelected ? const Color(0xFF2563EB).withAlpha(15) : null,
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? const Color(0xFF2563EB)
+                          : const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      icon,
+                      size: 20,
+                      color:
+                          isSelected ? Colors.white : const Color(0xFF64748B),
+                    ),
+                  ),
+                  title: Text(
+                    _filters[index],
+                    style: TextStyle(
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                      color: isSelected
+                          ? const Color(0xFF2563EB)
+                          : const Color(0xFF1E293B),
+                    ),
+                  ),
+                  subtitle: Text(
+                    subtitle,
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                  ),
+                  trailing: isSelected
+                      ? const Icon(Icons.check_rounded, color: Color(0xFF2563EB))
+                      : null,
+                  onTap: () {
+                    setState(() {
+                      _selectedFilterIndex = index;
+                    });
+                    Navigator.pop(ctx);
+                  },
+                );
+              }),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionCircle({
+    required IconData icon,
+    required String tooltip,
+    required VoidCallback? onTap,
+  }) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(20),
+      onTap: onTap,
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF64748B).withAlpha(16),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Icon(
+          icon,
+          size: 19,
+          color: onTap != null ? const Color(0xFF475569) : Colors.grey.shade300,
+        ),
+      ),
+    );
+  }
+
   List<Task> _applyFilters(List<Task> allTasks, AppStateManager state) {
     var list = allTasks;
 
@@ -161,29 +302,44 @@ class _TaskScreenState extends State<TaskScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Top Header: Title "Assignments" & Subtitle
+                // Top Header: Title "Assignments" & Action Icons
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        'Assignments',
-                        style: TextStyle(
-                          color: Color(0xFF0F172A),
-                          fontSize: 28,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: -0.6,
-                        ),
+                      const Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Assignments',
+                            style: TextStyle(
+                              color: Color(0xFF0F172A),
+                              fontSize: 28,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: -0.6,
+                            ),
+                          ),
+                          SizedBox(height: 3),
+                          Text(
+                            'Manage your tasks and never miss a deadline',
+                            style: TextStyle(
+                              color: Color(0xFF64748B),
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 3),
-                      const Text(
-                        'Manage your tasks and never miss a deadline',
-                        style: TextStyle(
-                          color: Color(0xFF64748B),
-                          fontSize: 13.5,
-                          fontWeight: FontWeight.w500,
-                        ),
+                      // Action Buttons (Scan QR / Import Task)
+                      Row(
+                        children: [
+                          _buildActionCircle(
+                            icon: Icons.qr_code_scanner_rounded,
+                            tooltip: 'Scan / Import Tasks',
+                            onTap: _openImportDialog,
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -251,13 +407,33 @@ class _TaskScreenState extends State<TaskScreen> {
                             },
                           ),
                         IconButton(
-                          icon: const Icon(
-                            Icons.tune_rounded,
-                            color: Color(0xFF4F46E5),
-                            size: 20,
+                          icon: Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              Icon(
+                                Icons.tune_rounded,
+                                color: _selectedFilterIndex != 0
+                                    ? const Color(0xFF2563EB)
+                                    : const Color(0xFF4F46E5),
+                                size: 20,
+                              ),
+                              if (_selectedFilterIndex != 0)
+                                Positioned(
+                                  top: -2,
+                                  right: -2,
+                                  child: Container(
+                                    width: 7,
+                                    height: 7,
+                                    decoration: const BoxDecoration(
+                                      color: Color(0xFF2563EB),
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                ),
+                            ],
                           ),
-                          tooltip: 'Import / Options',
-                          onPressed: _openImportDialog,
+                          tooltip: 'Filter by Category',
+                          onPressed: _openFilterModal,
                         ),
                       ],
                     ),

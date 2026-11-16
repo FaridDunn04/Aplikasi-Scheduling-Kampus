@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import '../models/course_model.dart';
@@ -12,16 +13,27 @@ class DatabaseHelper {
 
   Future<Database> get database async {
     if (_database != null) return _database!;
-    _database = await _initDB('unisched.db');
+    _database = await _initDB('daynix.db');
     return _database!;
   }
 
   Future<Database> _initDB(String filePath) async {
     final dbPath = await getDatabasesPath();
-    final path = join(dbPath, filePath);
+
+    // Migrasi aman dari nama database lama jika ada
+    final oldPath = join(dbPath, 'unisched.db');
+    final newPath = join(dbPath, filePath);
+    final oldFile = File(oldPath);
+    final newFile = File(newPath);
+
+    if (await oldFile.exists() && !(await newFile.exists())) {
+      try {
+        await oldFile.rename(newPath);
+      } catch (_) {}
+    }
 
     return await openDatabase(
-      path,
+      newPath,
       version: 1,
       onConfigure: _onConfigure,
       onCreate: _createDB,

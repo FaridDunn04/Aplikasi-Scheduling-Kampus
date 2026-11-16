@@ -30,7 +30,7 @@ void main() async {
   // 4. Inisialisasi listener deep link
   _initDeepLinkListener();
 
-  runApp(const UniSchedApp());
+  runApp(const DayNixApp());
 }
 
 void _initDeepLinkListener() async {
@@ -58,7 +58,7 @@ void _initDeepLinkListener() async {
 }
 
 void _handleIncomingUri(Uri uri) {
-  if (uri.scheme == 'unisched' && uri.host == 'import') {
+  if ((uri.scheme == 'daynix' || uri.scheme == 'unisched') && uri.host == 'import') {
     final data = uri.queryParameters['data'];
     if (data != null) {
       final payload = ShareDataCompressor.decompressPayload(data);
@@ -75,14 +75,14 @@ void _handleIncomingUri(Uri uri) {
   }
 }
 
-class UniSchedApp extends StatelessWidget {
-  const UniSchedApp({super.key});
+class DayNixApp extends StatelessWidget {
+  const DayNixApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       navigatorKey: rootNavigatorKey,
-      title: 'UniSched',
+      title: 'DayNix',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,

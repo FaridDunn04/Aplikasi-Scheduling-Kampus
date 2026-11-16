@@ -43,7 +43,7 @@ class HomeScreen extends StatelessWidget {
               child: ListView(
                 padding: const EdgeInsets.symmetric(horizontal: 18.0, vertical: 12.0),
                 children: [
-                  // Row 1: Brand Header "SyncClass" & Settings Gear Icon
+                  // Row 1: Brand Header "DayNix" & Settings Gear Icon
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -54,7 +54,7 @@ class HomeScreen extends StatelessWidget {
                             text: const TextSpan(
                               children: [
                                 TextSpan(
-                                  text: 'Uni',
+                                  text: 'Day',
                                   style: TextStyle(
                                     color: Color(0xFF0F172A),
                                     fontSize: 26,
@@ -63,7 +63,7 @@ class HomeScreen extends StatelessWidget {
                                   ),
                                 ),
                                 TextSpan(
-                                  text: 'Flow',
+                                  text: 'Nix',
                                   style: TextStyle(
                                     color: Color(0xFF4F46E5),
                                     fontSize: 26,

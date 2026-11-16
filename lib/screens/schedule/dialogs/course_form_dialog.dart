@@ -34,16 +34,6 @@ class _CourseFormDialogState extends State<CourseFormDialog> {
   late String _selectedColorHex;
   late String _courseType; // 'lecture' | 'lab'
 
-  final List<String> _colorOptions = [
-    '#3B82F6', // Blue
-    '#10B981', // Green
-    '#8B5CF6', // Purple
-    '#F59E0B', // Amber
-    '#EC4899', // Pink
-    '#06B6D4', // Cyan
-    '#F43F5E', // Rose
-    '#6366F1', // Indigo
-  ];
 
   @override
   void initState() {
@@ -336,7 +326,7 @@ class _CourseFormDialogState extends State<CourseFormDialog> {
                               controller: _sksController,
                               keyboardType: TextInputType.number,
                               decoration: const InputDecoration(
-                                labelText: 'Credits (SKS)',
+                                labelText: 'SKS',
                                 prefixIcon: Icon(Icons.confirmation_number_outlined),
                               ),
                             ),
@@ -429,35 +419,35 @@ class _CourseFormDialogState extends State<CourseFormDialog> {
                       const SizedBox(height: 16),
 
                       // Color Label Tag
-                      const Text(
-                        'Card Color Tag',
-                        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-                      ),
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 10,
-                        children: _colorOptions.map((hex) {
-                          final color = Color(int.parse('FF${hex.replaceAll('#', '')}', radix: 16));
-                          final isSelected = _selectedColorHex == hex;
-                          return GestureDetector(
-                            onTap: () => setState(() => _selectedColorHex = hex),
-                            child: Container(
-                              width: 34,
-                              height: 34,
-                              decoration: BoxDecoration(
-                                color: color,
-                                shape: BoxShape.circle,
-                                border: isSelected
-                                    ? Border.all(color: Colors.black87, width: 2.5)
-                                    : null,
-                              ),
-                              child: isSelected
-                                  ? const Icon(Icons.check, size: 20, color: Colors.white)
-                                  : null,
-                            ),
-                          );
-                        }).toList(),
-                      ),
+                      // const Text(
+                      //   'Card Color Tag',
+                      //   style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                      // ),
+                      // const SizedBox(height: 8),
+                      // Wrap(
+                      //   spacing: 10,
+                      //   children: _colorOptions.map((hex) {
+                      //     final color = Color(int.parse('FF${hex.replaceAll('#', '')}', radix: 16));
+                      //     final isSelected = _selectedColorHex == hex;
+                      //     return GestureDetector(
+                      //       onTap: () => setState(() => _selectedColorHex = hex),
+                      //       child: Container(
+                      //         width: 34,
+                      //         height: 34,
+                      //         decoration: BoxDecoration(
+                      //           color: color,
+                      //           shape: BoxShape.circle,
+                      //           border: isSelected
+                      //               ? Border.all(color: Colors.black87, width: 2.5)
+                      //               : null,
+                      //         ),
+                      //         child: isSelected
+                      //             ? const Icon(Icons.check, size: 20, color: Colors.white)
+                      //             : null,
+                      //       ),
+                      //     );
+                      //   }).toList(),
+                      // ),
                     ],
                   ),
                 ),

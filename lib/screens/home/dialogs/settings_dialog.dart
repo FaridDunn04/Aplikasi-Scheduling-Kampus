@@ -104,7 +104,7 @@ class SettingsDialog extends StatelessWidget {
                 child: Column(
                   children: [
                     Text(
-                      'UniSched v1.0.0',
+                      'DayNix v1.0.0',
                       style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey.shade600),
                     ),
                     const SizedBox(height: 2),
