@@ -49,8 +49,31 @@ app.*.map.json
 *.db
 *.db-journal
 *.db-wal
+*.sqlite
+*.sqlite3
 unisched*.db
 db_viewer.html
 unisched_clean.db
 unisched.db
+
+# Environment, API keys & Firebase configs
+.env
+.env.*
+**/google-services.json
+**/GoogleService-Info.plist
+
+# Android & iOS Signing Credentials (NEVER commit to public repo)
+*.jks
+*.keystore
+key.properties
+local.properties
+*.p12
+*.mobileprovision
+*.cer
+AuthKey_*.p8
+
+# OS & Crash logs
+Thumbs.db
+hs_err_pid*.log
+replay_pid*.log
 
