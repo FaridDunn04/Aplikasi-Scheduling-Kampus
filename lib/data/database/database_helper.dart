@@ -388,13 +388,58 @@ class DatabaseHelper {
     return await db.delete('alarm_sounds', where: 'id = ?', whereArgs: [id]);
   }
 
+  Future<int> updateAlarmSound(AlarmSound sound) async {
+    final db = await database;
+    return await db.update(
+      'alarm_sounds',
+      sound.toMap(),
+      where: 'id = ?',
+      whereArgs: [sound.id],
+    );
+  }
+
+  Future<void> restoreDefaultAlarmSounds() async {
+    final db = await database;
+    final defaults = [
+      AlarmSound(
+        id: 'sound_default_1',
+        title: 'Default Soft Chime',
+        sourceType: 'DEFAULT',
+        localFilePath: 'assets/sounds/chime.wav',
+        remoteUrl: null,
+        createdAt: DateTime.now().toIso8601String(),
+      ),
+      AlarmSound(
+        id: 'sound_default_2',
+        title: 'Digital Fast Beep',
+        sourceType: 'DEFAULT',
+        localFilePath: 'assets/sounds/beep.wav',
+        remoteUrl: null,
+        createdAt: DateTime.now().toIso8601String(),
+      ),
+      AlarmSound(
+        id: 'sound_default_3',
+        title: 'Energetic Morning Alarm',
+        sourceType: 'DEFAULT',
+        localFilePath: 'assets/sounds/energetic.wav',
+        remoteUrl: null,
+        createdAt: DateTime.now().toIso8601String(),
+      ),
+    ];
+    for (final d in defaults) {
+      await db.insert(
+        'alarm_sounds',
+        d.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
+  }
+
   Future<void> clearAllData() async {
     final db = await database;
     await db.delete('tasks');
     await db.delete('courses');
-    await db.delete('alarm_sounds');
-    // Re-seed default alarms
-    await _createDB(db, 1);
+    // Berkas dan rekaman alarm_sounds dipertahankan agar suara kustom tidak hilang
   }
 
   Future<void> close() async {

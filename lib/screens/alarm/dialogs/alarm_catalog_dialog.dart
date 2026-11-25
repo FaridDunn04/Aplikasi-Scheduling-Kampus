@@ -177,6 +177,110 @@ class _AlarmCatalogDialogState extends State<AlarmCatalogDialog> {
     }
   }
 
+  Future<void> _editSoundTitle(AlarmSound sound) async {
+    final controller = TextEditingController(text: sound.title);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Edit Sound Name'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(
+            labelText: 'Sound Name',
+            hintText: 'e.g., Morning Chime',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      final newTitle = controller.text.trim();
+      if (newTitle.isNotEmpty && newTitle != sound.title) {
+        final updated = sound.copyWith(title: newTitle);
+        await AppStateManager.instance.updateAlarmSound(updated);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Sound renamed to "$newTitle".'),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  Future<void> _confirmDeleteSound(AlarmSound sound) async {
+    final isDefault = sound.sourceType == 'DEFAULT';
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Alarm Sound?'),
+        content: Text(
+          isDefault
+              ? 'Are you sure you want to delete the default sound "${sound.title}"? You can restore default sounds anytime using the restore button.'
+              : 'Are you sure you want to delete "${sound.title}" and its local audio file?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      if (_currentlyPlayingId == sound.id) {
+        await _audioPlayer.stop();
+        setState(() => _currentlyPlayingId = null);
+      }
+      if (!isDefault) {
+        try {
+          final f = File(sound.localFilePath);
+          if (await f.exists()) await f.delete();
+        } catch (_) {}
+      }
+      await AppStateManager.instance.deleteAlarmSound(sound.id);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Deleted "${sound.title}".'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _restoreDefaultSounds() async {
+    await AppStateManager.instance.restoreDefaultAlarmSounds();
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Default alarm sounds restored.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Dialog(
@@ -200,9 +304,18 @@ class _AlarmCatalogDialogState extends State<AlarmCatalogDialog> {
                       ),
                     ],
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(context),
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.restore_rounded, size: 20, color: Color(0xFF475569)),
+                        tooltip: 'Restore Default Sounds',
+                        onPressed: _restoreDefaultSounds,
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -222,6 +335,28 @@ class _AlarmCatalogDialogState extends State<AlarmCatalogDialog> {
                   builder: (context, _) {
                     final sounds = AppStateManager.instance.alarmSounds;
 
+                    if (sounds.isEmpty) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.music_off_outlined, size: 48, color: Colors.grey),
+                            const SizedBox(height: 12),
+                            const Text(
+                              'No alarm sounds available.',
+                              style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 8),
+                            TextButton.icon(
+                              onPressed: _restoreDefaultSounds,
+                              icon: const Icon(Icons.restore_rounded),
+                              label: const Text('Restore Default Sounds'),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+
                     return ListView.separated(
                       itemCount: sounds.length,
                       separatorBuilder: (_, _) => const Divider(height: 1),
@@ -231,7 +366,7 @@ class _AlarmCatalogDialogState extends State<AlarmCatalogDialog> {
                         final isPlaying = _currentlyPlayingId == s.id;
 
                         return ListTile(
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                           leading: CircleAvatar(
                             backgroundColor: isPlaying
                                 ? Colors.green.withAlpha(40)
@@ -246,11 +381,16 @@ class _AlarmCatalogDialogState extends State<AlarmCatalogDialog> {
                               size: 20,
                             ),
                           ),
-                          title: Text(s.title, style: const TextStyle(fontWeight: FontWeight.w600)),
+                          title: Text(
+                            s.title,
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                           subtitle: Text(
                             isPlaying
                                 ? 'Playing preview...'
-                                : (isDefault ? 'Default Ringtone' : 'Custom Imported Audio'),
+                                : (isDefault ? 'Default Sound' : 'Custom Imported Audio'),
                             style: TextStyle(
                               fontSize: 11,
                               color: isPlaying ? Colors.green : Colors.grey,
@@ -261,6 +401,8 @@ class _AlarmCatalogDialogState extends State<AlarmCatalogDialog> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               IconButton(
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(minWidth: 38, minHeight: 38),
                                 icon: Icon(
                                   isPlaying ? Icons.stop_circle_rounded : Icons.play_circle_fill_rounded,
                                   color: isPlaying ? Colors.redAccent : const Color(0xFF2563EB),
@@ -269,24 +411,46 @@ class _AlarmCatalogDialogState extends State<AlarmCatalogDialog> {
                                 tooltip: isPlaying ? 'Stop' : 'Play Preview',
                                 onPressed: () => _togglePreviewSound(s),
                               ),
-                              if (isDefault)
-                                const Chip(label: Text('Default', style: TextStyle(fontSize: 10)))
-                              else
-                                IconButton(
-                                  icon: const Icon(Icons.delete_outline, size: 20, color: Colors.red),
-                                  tooltip: 'Delete Sound',
-                                  onPressed: () async {
-                                    if (_currentlyPlayingId == s.id) {
-                                      await _audioPlayer.stop();
-                                      setState(() => _currentlyPlayingId = null);
-                                    }
-                                    try {
-                                      final f = File(s.localFilePath);
-                                      if (await f.exists()) await f.delete();
-                                    } catch (_) {}
-                                    await AppStateManager.instance.deleteAlarmSound(s.id);
-                                  },
+                              PopupMenuButton<String>(
+                                icon: const Icon(
+                                  Icons.more_vert_rounded,
+                                  color: Color(0xFF64748B),
+                                  size: 20,
                                 ),
+                                tooltip: 'Sound Options',
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                onSelected: (value) {
+                                  if (value == 'edit') {
+                                    _editSoundTitle(s);
+                                  } else if (value == 'delete') {
+                                    _confirmDeleteSound(s);
+                                  }
+                                },
+                                itemBuilder: (context) => [
+                                  const PopupMenuItem<String>(
+                                    value: 'edit',
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.edit_outlined, size: 18, color: Color(0xFF475569)),
+                                        SizedBox(width: 10),
+                                        Text('Edit / Rename', style: TextStyle(fontSize: 13.5)),
+                                      ],
+                                    ),
+                                  ),
+                                  const PopupMenuItem<String>(
+                                    value: 'delete',
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.delete_outline, size: 18, color: Colors.red),
+                                        SizedBox(width: 10),
+                                        Text('Delete', style: TextStyle(fontSize: 13.5, color: Colors.red)),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ],
                           ),
                         );

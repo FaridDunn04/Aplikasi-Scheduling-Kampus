@@ -278,8 +278,18 @@ class AppStateManager extends ChangeNotifier {
     await refresh();
   }
 
+  Future<void> updateAlarmSound(AlarmSound sound) async {
+    await _db.updateAlarmSound(sound);
+    await refresh();
+  }
+
   Future<void> deleteAlarmSound(String id) async {
     await _db.deleteAlarmSound(id);
+    await refresh();
+  }
+
+  Future<void> restoreDefaultAlarmSounds() async {
+    await _db.restoreDefaultAlarmSounds();
     await refresh();
   }
 

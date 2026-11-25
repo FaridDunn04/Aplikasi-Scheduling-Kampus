@@ -9,9 +9,9 @@ class SettingsDialog extends StatelessWidget {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Reset All Data?'),
+        title: const Text('Reset Schedules & Tasks?'),
         content: const Text(
-          'This action will permanently delete all courses, schedules, and tasks stored on this device. This cannot be undone.',
+          'This action will permanently delete all courses, schedules, and tasks stored on this device. Your imported alarm audio files will be preserved. This cannot be undone.',
         ),
         actions: [
           TextButton(
@@ -27,7 +27,7 @@ class SettingsDialog extends StatelessWidget {
                 Navigator.pop(context); // Close settings dialog
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('All local data has been successfully cleared.'),
+                    content: Text('All schedules and tasks have been successfully cleared.'),
                     backgroundColor: Colors.red,
                   ),
                 );
@@ -94,8 +94,8 @@ class SettingsDialog extends StatelessWidget {
               ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: const Icon(Icons.delete_forever_outlined, color: Colors.red),
-                title: const Text('Clear & Reset All Data', style: TextStyle(color: Colors.red)),
-                subtitle: const Text('Delete all local courses, schedules, and tasks'),
+                title: const Text('Clear & Reset Schedules & Tasks', style: TextStyle(color: Colors.red)),
+                subtitle: const Text('Delete all local courses, schedules, and tasks (audio preserved)'),
                 onTap: () => _confirmResetData(context),
               ),
               const SizedBox(height: 16),

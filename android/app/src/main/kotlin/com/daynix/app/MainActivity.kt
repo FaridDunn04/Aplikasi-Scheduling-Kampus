@@ -1,4 +1,4 @@
-package com.example.scheadule_app
+package com.daynix.app
 
 import io.flutter.embedding.android.FlutterActivity
 
