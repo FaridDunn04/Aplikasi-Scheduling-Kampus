@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../data/models/course_model.dart';
 import '../../../state/app_state_manager.dart';
-import '../../schedule/dialogs/course_form_dialog.dart';
 import '../../main_navigation_screen.dart';
 
 class TodayCoursesSection extends StatelessWidget {
@@ -170,12 +169,7 @@ class TodayCoursesSection extends StatelessWidget {
                         padding: const EdgeInsets.only(bottom: 14.0),
                         child: InkWell(
                           borderRadius: BorderRadius.circular(20),
-                          onTap: () {
-                            showDialog(
-                              context: context,
-                              builder: (ctx) => CourseFormDialog(courseToEdit: course),
-                            );
-                          },
+                          onTap: () => MainNavigationScreen.openScheduleForDay(course.dayOfWeek),
                           child: Container(
                             decoration: BoxDecoration(
                               color: isOngoing ? const Color(0xFFEFF6FF) : Colors.white,

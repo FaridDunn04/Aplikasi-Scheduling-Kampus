@@ -19,6 +19,11 @@ class MainNavigationScreen extends StatefulWidget {
     switchTab(2);
   }
 
+  static void openScheduleForDay(int dayOfWeek) {
+    ScheduleScreen.requestDay(dayOfWeek);
+    switchTab(1);
+  }
+
   @override
   State<MainNavigationScreen> createState() => _MainNavigationScreenState();
 }

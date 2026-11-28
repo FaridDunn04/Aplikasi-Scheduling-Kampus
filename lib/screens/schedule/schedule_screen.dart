@@ -8,7 +8,15 @@ import '../share/dialogs/share_modal_dialog.dart';
 import '../share/dialogs/import_modal_dialog.dart';
 
 class ScheduleScreen extends StatefulWidget {
+  static final ValueNotifier<int> _daySelectRequest = ValueNotifier<int>(0);
+  static int? _requestedDayOfWeek;
+
   const ScheduleScreen({super.key});
+
+  static void requestDay(int dayOfWeek) {
+    _requestedDayOfWeek = dayOfWeek;
+    _daySelectRequest.value++;
+  }
 
   @override
   State<ScheduleScreen> createState() => _ScheduleScreenState();
@@ -25,6 +33,22 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     // Monday of current week
     _startOfWeek = DateTime(now.year, now.month, now.day).subtract(Duration(days: now.weekday - 1));
     _selectedDayIndex = now.weekday - 1; // 0 = Mon, 6 = Sun
+    ScheduleScreen._daySelectRequest.addListener(_onDaySelectRequest);
+  }
+
+  @override
+  void dispose() {
+    ScheduleScreen._daySelectRequest.removeListener(_onDaySelectRequest);
+    super.dispose();
+  }
+
+  void _onDaySelectRequest() {
+    final requested = ScheduleScreen._requestedDayOfWeek;
+    if (requested != null && mounted) {
+      setState(() {
+        _selectedDayIndex = (requested - 1).clamp(0, 6);
+      });
+    }
   }
 
   void _openAddCourseDialog() {

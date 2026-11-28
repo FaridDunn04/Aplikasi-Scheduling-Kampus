@@ -285,16 +285,17 @@ class TaskCard extends StatelessWidget {
                   ),
                 ),
 
-                // 3. Trailing More Actions
+                // 3. Trailing More Actions (3-dots menu on all tabs)
                 PopupMenuButton<String>(
-                  icon: Icon(
-                    task.isCompleted ? Icons.more_vert_rounded : Icons.chevron_right_rounded,
-                    color: const Color(0xFF94A3B8),
+                  icon: const Icon(
+                    Icons.more_vert_rounded,
+                    color: Color(0xFF94A3B8),
                     size: 20,
                   ),
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
                   onSelected: (val) {
+                    if (val == 'uncomplete') onToggleComplete(false);
                     if (val == 'edit') onEdit();
                     if (val == 'delete') onDelete();
                     if (val == 'share') {
@@ -308,6 +309,17 @@ class TaskCard extends StatelessWidget {
                     }
                   },
                   itemBuilder: (ctx) => [
+                    if (task.isCompleted)
+                      const PopupMenuItem(
+                        value: 'uncomplete',
+                        child: Row(
+                          children: [
+                            Icon(Icons.undo_rounded, size: 18, color: Color(0xFF2563EB)),
+                            SizedBox(width: 8),
+                            Text('Uncomplete', style: TextStyle(color: Color(0xFF2563EB))),
+                          ],
+                        ),
+                      ),
                     const PopupMenuItem(
                       value: 'edit',
                       child: Row(

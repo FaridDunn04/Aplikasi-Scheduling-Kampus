@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../data/models/task_model.dart';
 import '../../../state/app_state_manager.dart';
-import '../../task/dialogs/task_form_dialog.dart';
 import '../../main_navigation_screen.dart';
 
 class UrgentTasksSection extends StatelessWidget {
@@ -138,12 +137,7 @@ class UrgentTasksSection extends StatelessWidget {
 
                 return InkWell(
                   borderRadius: BorderRadius.circular(20),
-                  onTap: () {
-                    showDialog(
-                      context: context,
-                      builder: (ctx) => TaskFormDialog(taskToEdit: task),
-                    );
-                  },
+                  onTap: MainNavigationScreen.showAllTasks,
                   child: Container(
                     width: 220,
                     padding: const EdgeInsets.all(14),
